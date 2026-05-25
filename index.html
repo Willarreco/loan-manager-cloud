@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Empréstimos Premium</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+</head>
+<body class="dark-theme">
+    <script>checkSession();</script>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="WAEMPRESTIMO Logo" class="app-logo">
+                <h2>WAEMPRESTIMO</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" id="btn-inicio">
+                    <i class="fas fa-home"></i>
+                    <span>Início</span>
+                </button>
+                <button class="nav-btn" id="btn-config">
+                    <i class="fas fa-cog"></i>
+                    <span>Ajustes</span>
+                </button>
+                <button class="nav-btn" id="btn-logout" onclick="logout()" style="color: #ff4d4d;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="theme-selector">
+                    <select id="theme-select">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Painel de Controle de Empréstimos</h1>
+            </header>
+
+            <section class="form-container">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="cliente-nome">Nome do Cliente:</label>
+                        <input type="text" id="cliente-nome" placeholder="Digite o nome completo">
+                    </div>
+                    <div class="input-group">
+                        <label for="cliente-telefone">Telefone (WhatsApp):</label>
+                        <input type="text" id="cliente-telefone" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="input-group">
+                        <label for="valor-pego">Valor Pego (R$):</label>
+                        <input type="number" id="valor-pego" placeholder="0,00">
+                    </div>
+                    <div class="input-group">
+                        <label for="valor-juros">Juros:</label>
+                        <div class="input-with-select">
+                            <input type="number" id="valor-juros" placeholder="0">
+                            <select id="tipo-juros">
+                                <option value="percent">%</option>
+                                <option value="fixed">R$</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="valor-cobrado">Valor Cobrado (Opcional):</label>
+                        <input type="number" id="valor-cobrado" placeholder="0,00">
+                    </div>
+                    <div class="input-group">
+                        <label for="data-pagamento">Data de Pagamento:</label>
+                        <input type="date" id="data-pagamento">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="add-client-btn" class="primary-btn">Adicionar Novo Cliente</button>
+                </div>
+            </section>
+
+            <section class="dashboard-stats">
+                <div class="kpi-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Emprestado</h3>
+                            <p id="total-emprestado" class="stat-value">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Lucro Estimado</h3>
+                            <p id="total-mensal" class="stat-value">R$ 0,00</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(23, 162, 184, 0.1); color: #17a2b8;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Clientes Ativos</h3>
+                            <p id="total-clientes" class="stat-value">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Em Atraso</h3>
+                            <p id="total-atraso" class="stat-value">R$ 0,00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3>Distribuição de Arrecadação</h3>
+                            <p>Receita por cliente (Juros + Taxas)</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="loanChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="card-header">
+                            <h3>Status dos Pagamentos</h3>
+                            <p>Distribuição de prazos</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="list-container">
+                <div id="expiration-alerts" class="alerts-bar"></div>
+                <div class="list-header">
+                    <h3>Empréstimos Registrados</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table id="loan-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Telefone</th>
+                                <th>Valor Pego</th>
+                                <th>Juros</th>
+                                <th>Cobrado</th>
+                                <th>Total a Pagar</th>
+                                <th>Data Pagto.</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loan-list">
+                            <!-- Items will be added here -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="empty-state">
+                        Nenhum empréstimo registrado ainda.
+                    </div>
+                </div>
+            </section>
+
+            <footer class="content-footer">
+                <button class="success-btn" id="generate-report-btn">Gerar Relatório PDF</button>
+            </footer>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
