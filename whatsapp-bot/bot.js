@@ -18,10 +18,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function sessaoValida() {
     const credsPath = join(SESSION_DIR, 'creds.json');
     if (!existsSync(credsPath)) return false;
@@ -34,12 +30,11 @@ function sessaoValida() {
 }
 
 async function main() {
-    // Se sessão em cache for inválida, começar do zero
     if (existsSync(SESSION_DIR)) {
         if (sessaoValida()) {
             console.log('📂 Sessão WhatsApp válida encontrada em cache.');
         } else {
-            console.log('♻️ Sessão inválida ou incompleta. Removendo e iniciando QR...');
+            console.log('♻️ Sessão inválida. Removendo...');
             rmSync(SESSION_DIR, { recursive: true, force: true });
         }
     }
@@ -48,73 +43,87 @@ async function main() {
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+    let qrExibido = false;
+    let resolvido = false;
 
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         browser: ['WA Emprestimo Bot', 'Chrome', '1.0.0'],
         logger: pino({ level: 'silent' }),
-        connectTimeoutMs: 30000
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 30000
     });
 
-    let qrExibido = false;
-    let processado = false;
-
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
+        if (resolvido) return;
         const { connection, lastDisconnect, qr } = update;
 
         if (qr && !qrExibido) {
             qrExibido = true;
-            console.log('\n==================================================');
-            console.log('  🔷 ESCANEIE O QR CODE COM O WHATSAPP');
-            console.log('  📱 Menu → Dispositivos Conectados');
-            console.log('==================================================\n');
+            console.log('');
+            console.log('============================================');
+            console.log('  ESCANEIE O QR CODE COM O WHATSAPP');
+            console.log('  Menu > Dispositivos Conectados');
+            console.log('============================================');
+            console.log('');
             console.log(qr);
-            console.log('\n==================================================\n');
-            console.log('⏳ Aguardando você escanear o QR code (4 min)...');
+            console.log('');
+            console.log('============================================');
+            console.log('Aguardando scan...');
+        }
+
+        if (connection === 'open') {
+            resolvido = true;
+            if (qrExibido) {
+                console.log('QR Code escaneado! WhatsApp conectado.');
+            } else {
+                console.log('WhatsApp conectado via sessão salva!');
+            }
+            
+            processarPagamentos(sock).then(() => {
+                sock.logout().then(() => process.exit(0));
+            }).catch(err => {
+                console.error('Erro:', err.message);
+                sock.logout().then(() => process.exit(1));
+            });
         }
 
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason === DisconnectReason.loggedOut) {
-                console.error('WhatsApp deslogado. Remova a pasta baileys-session e execute novamente.');
+                console.error('WhatsApp deslogado. Execute novamente para gerar QR.');
+                resolvido = true;
                 process.exit(1);
             }
-            if (!processado) {
-                console.error('Conexão fechada inesperadamente. Tentando novamente...');
-            }
-        }
-
-        if (connection === 'open' && !processado) {
-            processado = true;
-            if (qrExibido) {
-                console.log('\n✅ QR Code escaneado! WhatsApp conectado.');
-            } else {
-                console.log('\n✅ WhatsApp conectado via sessão salva!');
-            }
-            await processarPagamentos(sock);
         }
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Timeout de 4 minutos
-    await delay(240000);
-    if (!processado) {
-        if (qrExibido) {
-            console.error('\n⏰ Tempo esgotado. QR code não escaneado a tempo.');
-            console.error('Execute o workflow novamente para tentar de novo.');
-        } else {
-            console.error('\n⏰ Tempo esgotado. Não foi possível conectar ao WhatsApp.');
-            console.error('Verifique se a sessão é válida ou execute novamente.');
-        }
+    // Timeout de 10 min para o GitHub Actions (timeout-max 15 min)
+    await new Promise((_, reject) => {
+        setTimeout(() => {
+            if (!resolvido) {
+                if (qrExibido) {
+                    reject(new Error('Tempo esgotado. QR nao escaneado. Execute novamente.'));
+                } else {
+                    reject(new Error('Tempo esgotado. QR nunca foi gerado.'));
+                }
+            }
+        }, 600000);
+    }).catch(err => {
+        console.error(err.message);
         process.exit(1);
-    }
+    });
 }
 
 async function processarPagamentos(sock) {
     const today = new Date().toISOString().split('T')[0];
-    console.log(`\n📅 Verificando pagamentos com vencimento em ${today}...\n`);
+    console.log('');
+    console.log('Verificando pagamentos com vencimento em ' + today + '...');
+    console.log('');
 
     const { data: loans, error } = await supabase
         .from('loans')
@@ -125,18 +134,16 @@ async function processarPagamentos(sock) {
         .eq('pagamentos.whatsapp_enviado', false);
 
     if (error) {
-        console.error('Erro ao consultar Supabase:', error.message);
-        await sock.logout();
-        process.exit(1);
+        throw new Error('Erro Supabase: ' + error.message);
     }
 
     if (!loans || loans.length === 0) {
-        console.log('✅ Nenhum pagamento vencendo hoje com notificação automática ativada.');
-        await sock.logout();
-        process.exit(0);
+        console.log('Nenhum pagamento vencendo hoje com notificacao automatica ativada.');
+        return;
     }
 
-    console.log(`📤 Enviando mensagens para ${loans.length} cliente(s)...\n`);
+    console.log('Enviando mensagens para ' + loans.length + ' cliente(s)...');
+    console.log('');
 
     for (const loan of loans) {
         const telefone = loan.telefone.replace(/\D/g, '');
@@ -150,20 +157,19 @@ async function processarPagamentos(sock) {
         const pagamentoIds = duePayments.map(p => p.id);
         await supabase.from('pagamentos').update({ whatsapp_enviado: true }).in('id', pagamentoIds);
 
-        const message = `Bom dia! Tudo bem?\n\n${nome}, passando para lembrar que hoje vence o seu compromisso de pagamento.\n\nVocê pode realizar o pagamento do valor total da dívida ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros.\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condições previamente acertadas.\n\nQualquer dúvida, estou à disposição. Obrigado!`;
+        const message = 'Bom dia! Tudo bem?\n\n' + nome + ', passando para lembrar que hoje vence o seu compromisso de pagamento.\n\nVoce pode realizar o pagamento do valor total da divida ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros.\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condicoes previamente acertadas.\n\nQualquer duvida, estou a disposicao. Obrigado!';
 
         try {
-            const chatId = `${telefone}@s.whatsapp.net`;
+            const chatId = telefone + '@s.whatsapp.net';
             await sock.sendMessage(chatId, { text: message });
-            console.log(`✅ Mensagem enviada para ${loan.nome} (${telefone})`);
+            console.log('Mensagem enviada para ' + loan.nome + ' (' + telefone + ')');
         } catch (err) {
-            console.error(`❌ Erro ao enviar para ${loan.nome}:`, err.message);
+            console.error('Erro ao enviar para ' + loan.nome + ': ' + err.message);
         }
     }
 
-    console.log('\n🏁 Processamento concluído!');
-    await sock.logout();
-    process.exit(0);
+    console.log('');
+    console.log('Processamento concluido!');
 }
 
 main();
