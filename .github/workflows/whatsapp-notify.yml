@@ -40,7 +40,13 @@ jobs:
         run: npm start
         working-directory: whatsapp-bot
 
+      - name: Limpar cache de sessão se falhou
+        if: failure()
+        shell: bash
+        run: rm -rf whatsapp-bot/baileys-session
+
       - name: Salvar sessão WhatsApp no cache
+        if: success()
         uses: actions/cache/save@v4
         with:
           path: whatsapp-bot/baileys-session

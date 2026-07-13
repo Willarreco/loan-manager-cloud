@@ -1,6 +1,6 @@
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import { createClient } from '@supabase/supabase-js';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import qrcode from 'qrcode-terminal';
@@ -45,15 +45,13 @@ async function main() {
 
         if (qr && !qrExibido) {
             qrExibido = true;
+            // Sessão existente é inválida, limpar
+            try { rmSync(SESSION_DIR, { recursive: true, force: true }); mkdirSync(SESSION_DIR); } catch (e) {}
             console.log('\n==================================================');
             console.log('  🔷 ESCANEIE O QR CODE COM O WHATSAPP');
             console.log('  📱 Menu → Dispositivos Conectados');
             console.log('==================================================\n');
-            // QR code como texto ANSI
-            qrcode.generate(qr, { small: true });
-            // Fallback: link para QR no celular
-            console.log('\n👉 Se o QR não aparecer, copie o link abaixo e abra no navegador:');
-            console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
+            console.log(qr);
             console.log('\n==================================================\n');
             console.log('⏳ Aguardando você escanear o QR code (5 min)...');
         }
