@@ -1,0 +1,4 @@
+/node_modules/
+/package-lock.json
+whatsapp-bot/baileys-session/
+whatsapp-bot/session.tar.gz

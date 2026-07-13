@@ -90,6 +90,42 @@
                         <label for="data-pagamento">Data de Pagamento:</label>
                         <input type="date" id="data-pagamento">
                     </div>
+                    <div class="input-group">
+                        <label for="frequencia">Frequência de Pagamento:</label>
+                        <select id="frequencia" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 1rem; outline: none;">
+                            <option value="unique">Pagamento Único</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensal</option>
+                            <option value="juros_only">Somente Juros</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="parcelas-group" style="display:none;">
+                        <label for="valor-parcela-input">Valor da Parcela (R$):</label>
+                        <input type="number" id="valor-parcela-input" placeholder="Ex: 200" min="1" step="0.01">
+                        <small id="parcelas-preview" style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem;"></small>
+                    </div>
+                    <div class="input-group" id="dia-semana-group" style="display:none;">
+                        <label for="dia-semana">Dia da Semana:</label>
+                        <select id="dia-semana" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 1rem; outline: none;">
+                            <option value="0">Domingo</option>
+                            <option value="1">Segunda-feira</option>
+                            <option value="2">Terça-feira</option>
+                            <option value="3">Quarta-feira</option>
+                            <option value="4">Quinta-feira</option>
+                            <option value="5">Sexta-feira</option>
+                            <option value="6">Sábado</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="dia-mes-group" style="display:none;">
+                        <label for="dia-mes">Dia do Mês:</label>
+                        <select id="dia-mes" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 1rem; outline: none;"></select>
+                    </div>
+                    <div class="input-group" id="auto-notify-group" style="display:none;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-notify" checked>
+                            <span>Notificação Automática via WhatsApp no vencimento</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button id="add-client-btn" class="primary-btn">Adicionar Novo Cliente</button>
@@ -173,6 +209,7 @@
                                 <th>Juros</th>
                                 <th>Cobrado</th>
                                 <th>Total a Pagar</th>
+                                <th>Parcelas</th>
                                 <th>Data Pagto.</th>
                                 <th>Ações</th>
                             </tr>
@@ -192,6 +229,36 @@
             </footer>
         </main>
     </div>
+
+    <!-- Modal de Parcelas -->
+    <div id="parcelas-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-loan-title">Parcelas do Empréstimo</h3>
+                <button class="modal-close" onclick="fecharModalParcelas()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-parcelas-body">
+                <table class="parcelas-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Data Pagto.</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parcelas-list"></tbody>
+                </table>
+                <div id="parcelas-empty" class="empty-state" style="display:none;">Nenhuma parcela encontrada.</div>
+            </div>
+            <div class="modal-footer">
+                <button class="primary-btn" onclick="fecharModalParcelas()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

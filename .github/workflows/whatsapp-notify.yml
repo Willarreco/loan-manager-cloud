@@ -1,0 +1,47 @@
+name: Notificação WhatsApp Automática
+
+on:
+  workflow_dispatch:
+
+jobs:
+  notify:
+    name: Enviar cobranças do dia
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: whatsapp-bot/package-lock.json
+
+      - name: Restaurar sessão WhatsApp
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: whatsapp-bot/baileys-session
+          key: wa-session-${{ runner.os }}
+          restore-keys: |
+            wa-session-${{ runner.os }}
+
+      - name: Instalar dependências
+        run: npm ci
+        working-directory: whatsapp-bot
+
+      - name: Executar bot de notificação
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npm start
+        working-directory: whatsapp-bot
+
+      - name: Salvar sessão WhatsApp no cache
+        uses: actions/cache/save@v4
+        with:
+          path: whatsapp-bot/baileys-session
+          key: wa-session-${{ runner.os }}
