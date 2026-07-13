@@ -4,6 +4,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import qrcode from 'qrcode-terminal';
+import pino from 'pino';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = join(__dirname, 'baileys-session');
@@ -33,7 +34,7 @@ async function main() {
         auth: state,
         printQRInTerminal: false,
         browser: ['WA Emprestimo Bot', 'Chrome', '1.0.0'],
-        logger: { info() {}, warn() {}, error() {}, debug() {}, trace() {} }
+        logger: pino({ level: 'silent' })
     });
 
     let qrExibido = false;

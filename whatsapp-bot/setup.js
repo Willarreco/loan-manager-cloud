@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { create } from 'tar';
+import pino from 'pino';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = join(__dirname, 'baileys-session');
@@ -16,7 +17,7 @@ async function setup() {
         auth: state,
         printQRInTerminal: false,
         browser: ['WA Emprestimo Bot', 'Chrome', '1.0.0'],
-        logger: { info() {}, warn() {}, error() {}, debug() {}, trace() {} }
+        logger: pino({ level: 'silent' })
     });
 
     sock.ev.on('connection.update', async (update) => {
