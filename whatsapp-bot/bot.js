@@ -1,9 +1,8 @@
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import { createClient } from '@supabase/supabase-js';
-import { existsSync, mkdirSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +22,27 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function sessaoValida() {
+    const credsPath = join(SESSION_DIR, 'creds.json');
+    if (!existsSync(credsPath)) return false;
+    try {
+        const creds = JSON.parse(readFileSync(credsPath, 'utf-8'));
+        return creds.registered === true && creds.serverToken;
+    } catch {
+        return false;
+    }
+}
+
 async function main() {
+    // Se sessão em cache for inválida, começar do zero
+    if (existsSync(SESSION_DIR)) {
+        if (sessaoValida()) {
+            console.log('📂 Sessão WhatsApp válida encontrada em cache.');
+        } else {
+            console.log('♻️ Sessão inválida ou incompleta. Removendo e iniciando QR...');
+            rmSync(SESSION_DIR, { recursive: true, force: true });
+        }
+    }
     if (!existsSync(SESSION_DIR)) {
         mkdirSync(SESSION_DIR, { recursive: true });
     }
@@ -34,7 +53,8 @@ async function main() {
         auth: state,
         printQRInTerminal: false,
         browser: ['WA Emprestimo Bot', 'Chrome', '1.0.0'],
-        logger: pino({ level: 'silent' })
+        logger: pino({ level: 'silent' }),
+        connectTimeoutMs: 30000
     });
 
     let qrExibido = false;
@@ -45,15 +65,13 @@ async function main() {
 
         if (qr && !qrExibido) {
             qrExibido = true;
-            // Sessão existente é inválida, limpar
-            try { rmSync(SESSION_DIR, { recursive: true, force: true }); mkdirSync(SESSION_DIR); } catch (e) {}
             console.log('\n==================================================');
             console.log('  🔷 ESCANEIE O QR CODE COM O WHATSAPP');
             console.log('  📱 Menu → Dispositivos Conectados');
             console.log('==================================================\n');
             console.log(qr);
             console.log('\n==================================================\n');
-            console.log('⏳ Aguardando você escanear o QR code (5 min)...');
+            console.log('⏳ Aguardando você escanear o QR code (4 min)...');
         }
 
         if (connection === 'close') {
@@ -62,6 +80,9 @@ async function main() {
                 console.error('WhatsApp deslogado. Remova a pasta baileys-session e execute novamente.');
                 process.exit(1);
             }
+            if (!processado) {
+                console.error('Conexão fechada inesperadamente. Tentando novamente...');
+            }
         }
 
         if (connection === 'open' && !processado) {
@@ -69,7 +90,7 @@ async function main() {
             if (qrExibido) {
                 console.log('\n✅ QR Code escaneado! WhatsApp conectado.');
             } else {
-                console.log('\n✅ WhatsApp conectado (sessão salva)!');
+                console.log('\n✅ WhatsApp conectado via sessão salva!');
             }
             await processarPagamentos(sock);
         }
@@ -77,11 +98,16 @@ async function main() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Timeout de 5 minutos (mesmo limite do workflow)
-    await delay(290000);
+    // Timeout de 4 minutos
+    await delay(240000);
     if (!processado) {
-        console.error('\n⏰ Tempo esgotado. QR code não escaneado a tempo.');
-        console.error('Execute o workflow novamente para tentar de novo.');
+        if (qrExibido) {
+            console.error('\n⏰ Tempo esgotado. QR code não escaneado a tempo.');
+            console.error('Execute o workflow novamente para tentar de novo.');
+        } else {
+            console.error('\n⏰ Tempo esgotado. Não foi possível conectar ao WhatsApp.');
+            console.error('Verifique se a sessão é válida ou execute novamente.');
+        }
         process.exit(1);
     }
 }
