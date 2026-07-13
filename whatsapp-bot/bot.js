@@ -45,13 +45,17 @@ async function main() {
 
         if (qr && !qrExibido) {
             qrExibido = true;
-            console.log('\n============================================');
-            console.log('  ESCANEIE O QR CODE COM O WHATSAPP');
-            console.log('  (Menu → Dispositivos Conectados)');
-            console.log('============================================\n');
-            qrcode.generate(qr, { small: false });
-            console.log('\n============================================\n');
-            console.log('⏳ Aguardando você escanear o QR code...');
+            console.log('\n==================================================');
+            console.log('  🔷 ESCANEIE O QR CODE COM O WHATSAPP');
+            console.log('  📱 Menu → Dispositivos Conectados');
+            console.log('==================================================\n');
+            // QR code como texto ANSI
+            qrcode.generate(qr, { small: true });
+            // Fallback: link para QR no celular
+            console.log('\n👉 Se o QR não aparecer, copie o link abaixo e abra no navegador:');
+            console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
+            console.log('\n==================================================\n');
+            console.log('⏳ Aguardando você escanear o QR code (5 min)...');
         }
 
         if (connection === 'close') {
@@ -65,9 +69,9 @@ async function main() {
         if (connection === 'open' && !processado) {
             processado = true;
             if (qrExibido) {
-                console.log('✅ QR Code escaneado! WhatsApp conectado.');
+                console.log('\n✅ QR Code escaneado! WhatsApp conectado.');
             } else {
-                console.log('✅ WhatsApp conectado (sessão salva)!');
+                console.log('\n✅ WhatsApp conectado (sessão salva)!');
             }
             await processarPagamentos(sock);
         }
@@ -75,8 +79,8 @@ async function main() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Timeout de 3 minutos para escanear o QR
-    await delay(180000);
+    // Timeout de 5 minutos (mesmo limite do workflow)
+    await delay(290000);
     if (!processado) {
         console.error('\n⏰ Tempo esgotado. QR code não escaneado a tempo.');
         console.error('Execute o workflow novamente para tentar de novo.');
