@@ -31,7 +31,10 @@ function waSalvarApiKey() {
 }
 
 async function waApiRequest(method, path, body = null) {
-    const fullPath = '/api/wa-proxy?path=' + encodeURIComponent(path);
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const baseUrl = isLocal ? WA_API_BASE : '/api/wa-proxy?path=';
+    const fullPath = isLocal ? baseUrl + path : baseUrl + encodeURIComponent(path);
+
     const opts = {
         method,
         headers: waGetHeaders()
