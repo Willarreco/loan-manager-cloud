@@ -269,12 +269,20 @@ function waIniciarPolling() {
 // ========== NAVEGAÇÃO ==========
 
 function waAbrirPainel() {
-    if (typeof mostrarWaPanel === 'function') {
-        mostrarWaPanel();
-    }
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('wa-panel').style.display = 'block';
+    var form = document.querySelector('.form-container');
+    var stats = document.querySelector('.dashboard-stats');
+    var list = document.querySelector('.list-container');
+    var reportBtn = document.getElementById('generate-report-btn');
+    if (form) form.style.display = 'none';
+    if (stats) stats.style.display = 'none';
+    if (list) list.style.display = 'none';
+    if (reportBtn) reportBtn.style.display = 'none';
+
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
     document.getElementById('btn-wa').classList.add('active');
 
+    if (waPollInterval) clearInterval(waPollInterval);
     waListarSessoes();
     waPreencherSelectSessoes();
     waCarregarLog();
