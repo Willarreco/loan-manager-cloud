@@ -142,8 +142,10 @@ async function waVerificarConexao(sessionId) {
         try {
             const session = await waApiRequest('GET', '/api/sessions/' + sessionId);
             if (session.status === 'ready') {
+                localStorage.setItem('wa_active_session', sessionId);
                 qrStatus.textContent = 'Conectado! Telefone: ' + (session.phone || 'OK');
                 await waListarSessoes();
+                waPreencherSelectSessoes();
                 return;
             }
         } catch (e) {}

@@ -767,10 +767,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!loan) return;
         const nome = loan.nome.split(' ')[0];
         let message = `Bom dia! Tudo bem?\n\n${nome}, passando para lembrar que hoje vence o seu compromisso de pagamento.\n\n`;
+        let valorParcela = 0;
         if (loan.frequencia !== 'unique' && loan.pagamentos) {
             const pendentes = loan.pagamentos.filter(p => !p.pago);
             if (pendentes.length > 0) {
                 const prox = pendentes[0];
+                valorParcela = prox.valor;
                 message += `Você pode realizar o pagamento do valor total da dívida (parcela de R$ ${prox.valor.toLocaleString('pt-BR')}) ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros.`;
                 for (const p of pendentes) {
                     if (!p.whatsappEnviado) {
@@ -782,11 +784,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                 message = `Olá ${loan.nome}, suas parcelas estão todas em dia!`;
             }
         } else {
+            valorParcela = loan.totalAPagar;
             message += `Você pode realizar o pagamento do valor total da dívida (R$ ${loan.totalAPagar.toLocaleString('pt-BR')}) ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros.`;
             loan._whatsappEnviado = true;
         }
         if (!message.startsWith('Olá')) {
             message += `\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condições previamente acertadas.\n\nQualquer dúvida, estou à disposição. Obrigado!`;
+        }
+        // Tentar enviar via API WA, fallback para wa.me
+        const waSession = localStorage.getItem('wa_active_session');
+        const waKey = localStorage.getItem('wa_api_key');
+        if (waSession && waKey) {
+            try {
+                const telefone = loan.telefone.replace(/\D/g, '');
+                const fullPath = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+                    ? 'https://wa-swagger.pavtech.com.br/api/sessions/' + waSession + '/messages/send-text'
+                    : '/api/wa-proxy?path=' + encodeURIComponent('/api/sessions/' + waSession + '/messages/send-text');
+                await fetch(fullPath, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-API-Key': waKey },
+                    body: JSON.stringify({ chatId: telefone + '@c.us', text: message })
+                });
+                // Registrar log
+                try {
+                    const user = (await supabase.auth.getUser()).data.user;
+                    if (user) {
+                        await supabase.from('notificacao_log').insert([{
+                            user_id: user.id, loan_id: loan.id,
+                            cliente_nome: loan.nome, cliente_telefone: loan.telefone,
+                            parcela_valor: valorParcela, mensagem: message,
+                            status: 'enviado', tipo_envio: 'manual'
+                        }]);
+                    }
+                } catch (e) {}
+                return;
+            } catch (e) {
+                console.warn('API WA falhou, fallback wa.me:', e);
+            }
         }
         const url = `https://wa.me/${loan.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
