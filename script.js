@@ -895,9 +895,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Navegação
+    function mostrarSecoesPrincipais() {
+        document.getElementById('wa-panel').style.display = 'none';
+        document.querySelector('.form-container').style.display = '';
+        document.querySelector('.dashboard-stats').style.display = '';
+        document.querySelector('.list-container').style.display = '';
+        document.getElementById('generate-report-btn').style.display = '';
+    }
+    function mostrarWaPanel() {
+        document.querySelector('.form-container').style.display = 'none';
+        document.querySelector('.dashboard-stats').style.display = 'none';
+        document.querySelector('.list-container').style.display = 'none';
+        document.getElementById('generate-report-btn').style.display = 'none';
+        document.getElementById('wa-panel').style.display = '';
+    }
     document.getElementById('btn-inicio').addEventListener('click', () => {
-        document.querySelectorAll('.wa-panel').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.main-content > section').forEach(el => el.style.display = '');
+        mostrarSecoesPrincipais();
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-inicio').classList.add('active');
         if (waPollInterval) clearInterval(waPollInterval);

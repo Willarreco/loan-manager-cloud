@@ -269,17 +269,12 @@ function waIniciarPolling() {
 // ========== NAVEGAÇÃO ==========
 
 function waAbrirPainel() {
-    // Esconder outras seções
-    document.querySelectorAll('.main-content > section, .main-content > .wa-panel').forEach(el => {
-        el.style.display = 'none';
-    });
-    document.getElementById('wa-panel').style.display = 'block';
-
-    // Atualizar active nav
+    if (typeof mostrarWaPanel === 'function') {
+        mostrarWaPanel();
+    }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-wa').classList.add('active');
 
-    // Carregar dados
     waListarSessoes();
     waPreencherSelectSessoes();
     waCarregarLog();
