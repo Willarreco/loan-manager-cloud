@@ -65,9 +65,14 @@ async function waCriarSessao() {
     const nome = document.getElementById('wa-session-name').value.trim();
     if (!nome) { alert('Digite um nome para a sessão.'); return; }
     try {
-        await waApiRequest('POST', '/api/sessions', { name: nome });
+        const result = await waApiRequest('POST', '/api/sessions', { name: nome });
+        const sessionId = result.id;
         document.getElementById('wa-session-name').value = '';
+        // Iniciar automaticamente
+        await waApiRequest('POST', '/api/sessions/' + sessionId + '/start');
         await waListarSessoes();
+        // Abrir QR
+        waExibirQR(sessionId);
     } catch (e) {
         alert('Erro ao criar: ' + e.message);
     }
@@ -105,16 +110,43 @@ async function waExibirQR(id) {
     const qrContainer = document.getElementById('wa-qr-container');
     const qrImg = document.getElementById('wa-qr-image');
     const qrStatus = document.getElementById('wa-qr-status');
-    try {
-        qrContainer.style.display = 'block';
-        qrStatus.textContent = 'Obtendo QR code...';
-        const data = await waApiRequest('GET', '/api/sessions/' + id + '/qr');
-        qrImg.src = data.qrCode;
-        qrStatus.textContent = 'Escaneie com WhatsApp > Menu > Dispositivos Conectados';
-        qrContainer.dataset.sessionId = id;
-    } catch (e) {
-        qrImg.src = '';
-        qrStatus.textContent = 'Erro: ' + e.message;
+    qrContainer.style.display = 'block';
+    qrContainer.dataset.sessionId = id;
+
+    // Tentar obter QR com retry a cada 3s
+    for (let tentativa = 1; tentativa <= 20; tentativa++) {
+        qrStatus.textContent = 'Obtendo QR code... (' + tentativa + '/20)';
+        try {
+            const data = await waApiRequest('GET', '/api/sessions/' + id + '/qr');
+            if (data.qrCode) {
+                qrImg.src = data.qrCode;
+                qrStatus.textContent = 'Escaneie com WhatsApp > Menu > Dispositivos Conectados';
+                // Verificar status a cada 5s
+                waVerificarConexao(id);
+                return;
+            }
+        } catch (e) {
+            if (tentativa < 20) {
+                await new Promise(r => setTimeout(r, 3000));
+            } else {
+                qrStatus.textContent = 'Erro: ' + e.message;
+            }
+        }
+    }
+}
+
+async function waVerificarConexao(sessionId) {
+    const qrStatus = document.getElementById('wa-qr-status');
+    for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        try {
+            const session = await waApiRequest('GET', '/api/sessions/' + sessionId);
+            if (session.status === 'ready') {
+                qrStatus.textContent = 'Conectado! Telefone: ' + (session.phone || 'OK');
+                await waListarSessoes();
+                return;
+            }
+        } catch (e) {}
     }
 }
 
@@ -287,8 +319,9 @@ function waAbrirPainel() {
     document.getElementById('btn-wa').classList.add('active');
 
     if (waPollInterval) clearInterval(waPollInterval);
-    waListarSessoes();
-    waPreencherSelectSessoes();
+    // Não listar sessões automaticamente
+    document.getElementById('wa-sessions-list').innerHTML = '';
+    document.getElementById('wa-sessions-empty').style.display = 'block';
+    document.getElementById('wa-send-session').innerHTML = '<option value="">Crie e conecte uma sessão primeiro</option>';
     waCarregarLog();
-    waIniciarPolling();
 }
