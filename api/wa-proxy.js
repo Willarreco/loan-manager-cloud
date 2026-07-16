@@ -1,7 +1,6 @@
 const WA_API_BASE = 'https://wa-swagger.pavtech.com.br';
 
-export default async function handler(req, res) {
-    // CORS headers
+module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
@@ -28,15 +27,16 @@ export default async function handler(req, res) {
     const url = WA_API_BASE + path;
     const method = req.method;
 
-    const headers = {
-        'X-API-Key': apiKey,
-        'Content-Type': 'application/json'
-    };
-
     try {
-        const fetchOptions = { method, headers };
+        const fetchOptions = {
+            method,
+            headers: {
+                'X-API-Key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        };
 
-        if (method !== 'GET' && method !== 'HEAD' && req.body && Object.keys(req.body).length > 0) {
+        if (method !== 'GET' && method !== 'HEAD' && req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
             fetchOptions.body = JSON.stringify(req.body);
         }
 
@@ -58,4 +58,4 @@ export default async function handler(req, res) {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
+};
