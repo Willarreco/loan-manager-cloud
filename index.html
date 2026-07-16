@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
     <script src="auth.js"></script>
+    <script src="wa-manager.js"></script>
 </head>
 <body class="dark-theme">
     <script>checkSession();</script>
@@ -32,6 +33,10 @@
                 <button class="nav-btn active" id="btn-inicio">
                     <i class="fas fa-home"></i>
                     <span>Início</span>
+                </button>
+                <button class="nav-btn" id="btn-wa" onclick="waAbrirPainel()">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>WhatsApp</span>
                 </button>
                 <button class="nav-btn" id="btn-config">
                     <i class="fas fa-cog"></i>
@@ -229,6 +234,112 @@
             </footer>
         </main>
     </div>
+
+    <!-- Painel WhatsApp -->
+    <section class="wa-panel" id="wa-panel" style="display:none;">
+        <header class="content-header">
+            <h1><i class="fab fa-whatsapp"></i> Gestão WhatsApp</h1>
+        </header>
+
+        <!-- API Key -->
+        <section class="form-container" style="margin-bottom:1.5rem;">
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="wa-api-key">API Key (PavTech WA):</label>
+                    <div style="display:flex;gap:0.5rem;">
+                        <input type="password" id="wa-api-key" placeholder="owa_k1_..." style="flex:1;">
+                        <button class="primary-btn" onclick="waSalvarApiKey()">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QR Code Modal -->
+        <div id="wa-qr-container" style="display:none; text-align:center; padding:2rem; background:var(--card-bg); border-radius:12px; max-width:400px; margin:0 auto 1.5rem;">
+            <h3>QR Code WhatsApp</h3>
+            <img id="wa-qr-image" src="" alt="QR Code" style="width:280px; height:280px; margin:1rem 0; border-radius:8px; background:#fff; padding:8px;">
+            <p id="wa-qr-status" style="color:var(--text-secondary); font-size:0.85rem;"></p>
+            <button class="danger-btn" onclick="waFecharQR()">Fechar</button>
+        </div>
+
+        <!-- Sessões -->
+        <section class="list-container" style="margin-bottom:1.5rem;">
+            <div class="list-header">
+                <h3>Sessões</h3>
+                <div style="display:flex;gap:0.5rem;">
+                    <input type="text" id="wa-session-name" placeholder="Nome da sessão" style="padding:0.5rem; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary);">
+                    <button class="success-btn" onclick="waCriarSessao()">Criar</button>
+                    <button class="primary-btn" onclick="waListarSessoes()">Atualizar</button>
+                </div>
+            </div>
+            <div id="wa-sessions-error" style="color:#ff4d4d; font-size:0.85rem; margin-bottom:0.5rem;"></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Status</th>
+                            <th>Telefone</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wa-sessions-list"></tbody>
+                </table>
+                <div id="wa-sessions-empty" class="empty-state">Nenhuma sessão criada.</div>
+            </div>
+        </section>
+
+        <!-- Envio de Mensagem -->
+        <section class="list-container" style="margin-bottom:1.5rem;">
+            <div class="list-header">
+                <h3>Enviar Mensagem</h3>
+            </div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="wa-send-session">Sessão:</label>
+                    <select id="wa-send-session" style="background:var(--input-bg); border:1px solid var(--border-color); padding:0.75rem; border-radius:6px; color:var(--text-primary);"></select>
+                </div>
+                <div class="input-group">
+                    <label for="wa-send-phone">Telefone (com DDD):</label>
+                    <input type="text" id="wa-send-phone" placeholder="27998223108">
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label for="wa-send-text">Mensagem:</label>
+                    <textarea id="wa-send-text" rows="3" style="background:var(--input-bg); border:1px solid var(--border-color); padding:0.75rem; border-radius:6px; color:var(--text-primary); font-family:inherit;"></textarea>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="success-btn" onclick="waEnviarMensagem()">Enviar</button>
+                <span id="wa-send-status" style="margin-left:1rem; font-size:0.85rem; color:var(--text-secondary);"></span>
+            </div>
+        </section>
+
+        <!-- Log de Notificações -->
+        <section class="list-container">
+            <div class="list-header">
+                <h3>Log de Notificações Automáticas</h3>
+                <button class="primary-btn" onclick="waCarregarLog()">Atualizar</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Telefone</th>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th>Tipo</th>
+                            <th>Mensagem</th>
+                            <th>Data/Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wa-log-list"></tbody>
+                </table>
+                <div id="wa-log-empty" class="empty-state">Nenhuma notificação enviada ainda.</div>
+            </div>
+        </section>
+    </section>
 
     <!-- Modal de Parcelas -->
     <div id="parcelas-modal" class="modal-overlay" style="display:none;">

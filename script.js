@@ -893,4 +893,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const theme = themeSelect.value;
         document.body.setAttribute('data-theme', theme);
     }
+
+    // Navegação
+    document.getElementById('btn-inicio').addEventListener('click', () => {
+        document.querySelectorAll('.wa-panel').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.main-content > section').forEach(el => el.style.display = '');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-inicio').classList.add('active');
+        if (waPollInterval) clearInterval(waPollInterval);
+    });
 });

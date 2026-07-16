@@ -7,7 +7,6 @@ jobs:
   notify:
     name: Enviar cobranças do dia
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout do repositório
@@ -20,16 +19,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: whatsapp-bot/package-lock.json
 
-      - name: Limpar sessão anterior
-        run: rm -rf whatsapp-bot/.wwebjs_auth
-
-      - name: Restaurar sessão WhatsApp
-        id: cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: whatsapp-bot/.wwebjs_auth
-          key: wa-session-${{ runner.os }}
-
       - name: Instalar dependências
         run: npm ci
         working-directory: whatsapp-bot
@@ -38,16 +27,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          WA_API_KEY: ${{ secrets.WA_API_KEY }}
+          WA_SESSION_ID: ${{ secrets.WA_SESSION_ID }}
         run: npm start
         working-directory: whatsapp-bot
-
-      - name: Limpar cache se falhou
-        if: failure()
-        run: rm -rf whatsapp-bot/.wwebjs_auth
-
-      - name: Salvar sessão no cache
-        if: success()
-        uses: actions/cache/save@v4
-        with:
-          path: whatsapp-bot/.wwebjs_auth
-          key: wa-session-${{ runner.os }}

@@ -2,3 +2,5 @@
 /package-lock.json
 whatsapp-bot/baileys-session/
 whatsapp-bot/session.tar.gz
+whatsapp-bot/.wwebjs_auth/
+whatsapp-bot/node_modules/
