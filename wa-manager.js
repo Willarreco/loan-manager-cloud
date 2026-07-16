@@ -31,12 +31,13 @@ function waSalvarApiKey() {
 }
 
 async function waApiRequest(method, path, body = null) {
+    const fullPath = '/api/wa-proxy?path=' + encodeURIComponent(path);
     const opts = {
         method,
         headers: waGetHeaders()
     };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(WA_API_BASE + path, opts);
+    const res = await fetch(fullPath, opts);
     if (!res.ok) {
         const errText = await res.text().catch(() => '');
         throw new Error(res.status + (errText ? ': ' + errText.slice(0, 200) : ''));

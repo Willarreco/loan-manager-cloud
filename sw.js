@@ -1,4 +1,4 @@
-const CACHE_NAME = 'waemprestimo-cache-v2';
+const CACHE_NAME = 'waemprestimo-cache-v3';
 const urlsToCache = [
   'index.html',
   'login.html',
@@ -6,6 +6,7 @@ const urlsToCache = [
   'script.js',
   'config.js',
   'auth.js',
+  'wa-manager.js',
   'logo.png',
   'background.png',
   'background_vault_v2.png',
@@ -30,6 +31,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Ignorar requisições para a API proxy
+  if (event.request.url.includes('/api/')) return;
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
