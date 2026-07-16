@@ -20,34 +20,34 @@ jobs:
           cache: 'npm'
           cache-dependency-path: whatsapp-bot/package-lock.json
 
+      - name: Limpar sessão anterior
+        run: rm -rf whatsapp-bot/.wwebjs_auth
+
       - name: Restaurar sessão WhatsApp
         id: cache-restore
         uses: actions/cache/restore@v4
         with:
-          path: whatsapp-bot/baileys-session
+          path: whatsapp-bot/.wwebjs_auth
           key: wa-session-${{ runner.os }}
-          restore-keys: |
-            wa-session-${{ runner.os }}
 
       - name: Instalar dependências
         run: npm ci
         working-directory: whatsapp-bot
 
-      - name: Executar bot de notificação
+      - name: Executar bot
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: npm start
         working-directory: whatsapp-bot
 
-      - name: Limpar cache de sessão se falhou
+      - name: Limpar cache se falhou
         if: failure()
-        shell: bash
-        run: rm -rf whatsapp-bot/baileys-session
+        run: rm -rf whatsapp-bot/.wwebjs_auth
 
-      - name: Salvar sessão WhatsApp no cache
+      - name: Salvar sessão no cache
         if: success()
         uses: actions/cache/save@v4
         with:
-          path: whatsapp-bot/baileys-session
+          path: whatsapp-bot/.wwebjs_auth
           key: wa-session-${{ runner.os }}

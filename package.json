@@ -1,0 +1,23 @@
+{
+  "name": "sistema-emprestimos",
+  "version": "1.0.0",
+  "main": "auth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Willarreco/loan-manager-cloud.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Willarreco/loan-manager-cloud/issues"
+  },
+  "homepage": "https://github.com/Willarreco/loan-manager-cloud#readme",
+  "description": "",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0"
+  }
+}

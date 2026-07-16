@@ -4,14 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node bot.js",
-    "setup": "node setup.js"
+    "start": "node bot.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "@whiskeysockets/baileys": "^6.7.0",
-    "qrcode-terminal": "^0.12.0",
-    "pino": "^9.0.0",
-    "tar": "^7.4.0"
+    "whatsapp-web.js": "^1.26.0",
+    "puppeteer": "^24.0.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
