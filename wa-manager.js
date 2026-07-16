@@ -247,6 +247,24 @@ async function waEnviarMensagem() {
     }
 }
 
+// ========== FUNÇÃO PARA USO EXTERNO ==========
+
+window.waEnviarMensagemDireta = async function(telefone, texto) {
+    const sessionId = localStorage.getItem('wa_active_session');
+    const apiKey = localStorage.getItem('wa_api_key');
+    if (!sessionId || !apiKey) return false;
+    try {
+        await waApiRequest('POST', '/api/sessions/' + sessionId + '/messages/send-text', {
+            chatId: telefone + '@c.us',
+            text: texto
+        });
+        return true;
+    } catch (e) {
+        console.warn('waEnviarMensagemDireta falhou:', e);
+        return false;
+    }
+};
+
 // ========== LOG DE NOTIFICAÇÕES ==========
 
 async function waCarregarLog() {

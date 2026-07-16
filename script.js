@@ -791,21 +791,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!message.startsWith('Olá')) {
             message += `\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condições previamente acertadas.\n\nQualquer dúvida, estou à disposição. Obrigado!`;
         }
-        // Tentar enviar via API WA, fallback para wa.me
-        const waSession = localStorage.getItem('wa_active_session');
-        const waKey = localStorage.getItem('wa_api_key');
-        if (waSession && waKey) {
-            try {
-                const telefone = loan.telefone.replace(/\D/g, '');
-                const fullPath = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-                    ? 'https://wa-swagger.pavtech.com.br/api/sessions/' + waSession + '/messages/send-text'
-                    : '/api/wa-proxy?path=' + encodeURIComponent('/api/sessions/' + waSession + '/messages/send-text');
-                await fetch(fullPath, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': waKey },
-                    body: JSON.stringify({ chatId: telefone + '@c.us', text: message })
-                });
-                // Registrar log
+        // Tentar enviar via API WA usando wa-manager
+        if (typeof waEnviarMensagemDireta === 'function') {
+            const telefone = loan.telefone.replace(/\D/g, '');
+            const enviou = await waEnviarMensagemDireta(telefone, message);
+            if (enviou) {
                 try {
                     const user = (await supabase.auth.getUser()).data.user;
                     if (user) {
@@ -818,10 +808,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 } catch (e) {}
                 return;
-            } catch (e) {
-                console.warn('API WA falhou, fallback wa.me:', e);
             }
         }
+        // Fallback: abrir wa.me
         const url = `https://wa.me/${loan.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
