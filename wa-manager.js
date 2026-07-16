@@ -68,10 +68,10 @@ async function waCriarSessao() {
         const result = await waApiRequest('POST', '/api/sessions', { name: nome });
         const sessionId = result.id;
         document.getElementById('wa-session-name').value = '';
-        // Iniciar automaticamente
+        localStorage.setItem('wa_active_session', sessionId);
         await waApiRequest('POST', '/api/sessions/' + sessionId + '/start');
         await waListarSessoes();
-        // Abrir QR
+        waPreencherSelectSessoes();
         waExibirQR(sessionId);
     } catch (e) {
         alert('Erro ao criar: ' + e.message);
@@ -188,6 +188,14 @@ function waRenderSessoes() {
     const error = document.getElementById('wa-sessions-error');
     error.textContent = '';
     tbody.innerHTML = '';
+
+    // Salvar primeira sessão pronta como ativa
+    const readySession = waSessions.find(s => s.status === 'ready');
+    if (readySession) {
+        localStorage.setItem('wa_active_session', readySession.id);
+    } else {
+        localStorage.removeItem('wa_active_session');
+    }
 
     if (waSessions.length === 0) {
         empty.style.display = 'block';
@@ -321,9 +329,22 @@ function waAbrirPainel() {
     document.getElementById('btn-wa').classList.add('active');
 
     if (waPollInterval) clearInterval(waPollInterval);
-    // Não listar sessões automaticamente
-    document.getElementById('wa-sessions-list').innerHTML = '';
-    document.getElementById('wa-sessions-empty').style.display = 'block';
-    document.getElementById('wa-send-session').innerHTML = '<option value="">Crie e conecte uma sessão primeiro</option>';
+    // Detectar sessão ativa existente
+    detectarSessaoAtiva();
     waCarregarLog();
+}
+
+async function detectarSessaoAtiva() {
+    if (!waApiKey) return;
+    try {
+        const sessions = await waApiRequest('GET', '/api/sessions');
+        const ready = sessions.find(function(s) { return s.status === 'ready'; });
+        if (ready) {
+            localStorage.setItem('wa_active_session', ready.id);
+            document.getElementById('wa-sessions-empty').textContent = 'Sessão "' + ready.name + '" conectada!';
+        }
+    } catch (e) {}
+    // Mesmo sem sucesso, deixar tela limpa para criar nova
+    document.getElementById('wa-sessions-list').innerHTML = '';
+    document.getElementById('wa-send-session').innerHTML = '<option value="">Selecione uma sessão...</option>';
 }
