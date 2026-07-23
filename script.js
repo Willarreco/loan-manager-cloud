@@ -237,6 +237,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (frequencia !== 'unique' && numParcelas) {
                     await deletePagamentosDoLoan(editingLoanId);
                     await gerarParcelas(editingLoanId, valParcela, numParcelas, frequencia, totalAPagar, valorJuros);
+                } else if (frequencia === 'unique') {
+                    await deletePagamentosDoLoan(editingLoanId);
                 }
                 editingLoanId = null;
                 addBtn.textContent = 'Adicionar Novo Cliente';
@@ -879,6 +881,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.deleteLoan = deleteLoan;
     window.editLoan = editLoan;
+    window.clearForm = clearForm;
 
     function clearForm() {
         editingLoanId = null;
