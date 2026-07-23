@@ -10,6 +10,10 @@ ALTER TABLE loans ADD COLUMN IF NOT EXISTS numero_parcelas INT;
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS valor_parcela DECIMAL(12,2);
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS dia_vencimento INT;
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS auto_notify BOOLEAN DEFAULT FALSE;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS pago BOOLEAN DEFAULT FALSE;
+
+-- IMPORTANTE: Atualizar empréstimos únicos já pagos manualmente:
+-- UPDATE loans SET pago = true WHERE id = '...' (substitua pelos IDs dos empréstimos já quitados)
 
 -- 2. Criar tabela de parcelas
 CREATE TABLE IF NOT EXISTS pagamentos (

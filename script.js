@@ -141,7 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 numeroParcelas: l.numero_parcelas || null,
                 valorParcela: l.valor_parcela ? parseFloat(l.valor_parcela) : null,
                 diaVencimento: l.dia_vencimento,
-                autoNotify: l.auto_notify || false
+                autoNotify: l.auto_notify || false,
+                pago: l.pago || false
             }));
             // Carregar pagamentos para todos os empréstimos
             await loadAllPagamentos();
@@ -368,8 +369,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const status = getLoanStatus(loan.data);
             const tr = document.createElement('tr');
 
-            if (status === 'overdue') tr.classList.add('row-overdue');
-            if (status === 'today') tr.classList.add('row-due-today');
+            const isOverdue = status === 'overdue' && !loan.pago;
+            if (isOverdue) tr.classList.add('row-overdue');
+            if (status === 'today' && !loan.pago) tr.classList.add('row-due-today');
 
             let parcelasInfo = '—';
             if (loan.frequencia !== 'unique' && loan.pagamentos) {
@@ -392,6 +394,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 parcelasInfo = '—';
             }
 
+            const statusClasse = loan.pago ? 'status-upcoming' : (status === 'overdue' ? 'status-overdue' : status === 'today' ? 'status-today' : 'status-upcoming');
+            const statusTexto = loan.pago ? 'PAGO' : statusText(status);
             tr.innerHTML = `
                 <td><strong>${loan.nome}</strong></td>
                 <td>${loan.telefone}</td>
@@ -402,12 +406,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="font-size:0.85rem;">${parcelasInfo}</td>
                 <td>
                     ${formatDate(loan.data)} 
-                    <span class="status-badge status-${status}">${statusText(status)}</span>
+                    <span class="status-badge ${statusClasse}">${statusTexto}</span>
                 </td>
                 <td>
                     <button class="whatsapp-btn" onclick="notifyClient('${loan.id}')">Notificar</button>
                     ${loan.frequencia !== 'unique' ? `<button class="parcelas-btn" onclick="abrirModalParcelas('${loan.id}')"><i class="fas fa-list"></i></button>` : ''}
                     ${loan.frequencia === 'juros_only' ? `<button class="edit-btn" style="background:#6f42c1;color:#fff;" onclick="pagarPrincipal('${loan.id}')">Principal</button>` : ''}
+                    ${loan.frequencia === 'unique' ? (loan.pago ? '' : `<button class="success-btn" style="padding:0.3rem 0.5rem;font-size:0.75rem;" onclick="marcarPagoUnico('${loan.id}')">Pagar</button>`) : ''}
                     <button class="edit-btn" onclick="editLoan('${loan.id}')">Editar</button>
                     <button class="danger-btn" onclick="deleteLoan('${loan.id}')">Excluir</button>
                 </td>
@@ -425,13 +430,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (loan.frequencia !== 'unique' && loan.pagamentos) {
                 return loan.pagamentos.some(p => !p.pago && p.tipo !== 'principal' && p.dataVencimento === today);
             }
-            return loan.data === today;
+            return !loan.pago && loan.data === today;
         });
         const overdue = loans.filter(loan => {
             if (loan.frequencia !== 'unique' && loan.pagamentos) {
                 return loan.pagamentos.some(p => !p.pago && p.tipo !== 'principal' && p.dataVencimento < today);
             }
-            return loan.data < today;
+            return !loan.pago && loan.data < today;
         });
 
         if (dueToday.length > 0 || overdue.length > 0) {
@@ -671,7 +676,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             totalLucro += profit;
 
             // Verificar atraso considerando parcelas
-            let temAtraso = status === 'overdue';
+            let temAtraso = status === 'overdue' && !loan.pago;
             if (loan.frequencia !== 'unique' && loan.pagamentos) {
                 temAtraso = loan.pagamentos.some(p => !p.pago && p.dataVencimento < new Date().toISOString().split('T')[0]);
             }
@@ -836,6 +841,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (status === 'overdue') return 'ATRASADO';
         if (status === 'today') return 'VENCE HOJE';
         return 'NO PRAZO';
+    }
+
+    async function marcarPagoUnico(id) {
+        if (!confirm('Marcar este empréstimo como PAGO?')) return;
+        const { error } = await supabase.from('loans').update({ pago: true }).eq('id', id);
+        if (error) { alert('Erro ao marcar como pago: ' + error.message); return; }
+        loadLoans();
     }
 
     function editLoan(id) {
