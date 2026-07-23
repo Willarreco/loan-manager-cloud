@@ -851,25 +851,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         loanForm.cobrado.value = loan.cobrado;
         loanForm.data.value = loan.data;
         loanForm.frequencia.value = loan.frequencia || 'unique';
-        const isParceladoEdit = loan.frequencia !== 'unique';
-        if (isParceladoEdit) autoNotifyGroup.style.display = 'block';
         if (loan.valorParcela) {
             loanForm.valorParcela.value = loan.valorParcela;
-            autoNotifyCheck.checked = loan.autoNotify || false;
-            parcelasGroup.style.display = 'block';
-            if (loan.frequencia === 'weekly' || loan.frequencia === 'juros_only') {
-                diaSemanaGroup.style.display = 'block';
-                diaSemana.value = loan.diaVencimento || 0;
-            } else if (loan.frequencia === 'monthly') {
-                diaMesGroup.style.display = 'block';
-                diaMes.value = loan.diaVencimento || 1;
-            }
         } else {
             loanForm.valorParcela.value = '';
-            parcelasGroup.style.display = 'none';
-            diaSemanaGroup.style.display = 'none';
-            diaMesGroup.style.display = 'none';
         }
+        autoNotifyCheck.checked = loan.autoNotify || false;
+        // Disparar change para atualizar campos de frequencia
+        loanForm.frequencia.dispatchEvent(new Event('change'));
 
         addBtn.textContent = 'Salvar Alterações';
         addBtn.classList.remove('primary-btn');
