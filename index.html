@@ -42,6 +42,10 @@
                     <i class="fas fa-coins"></i>
                     <span>Rendas</span>
                 </button>
+                <button class="nav-btn" id="btn-relatorios" onclick="mostrarRelatorios()">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Relatórios</span>
+                </button>
                 <button class="nav-btn" id="btn-config">
                     <i class="fas fa-cog"></i>
                     <span>Ajustes</span>
@@ -475,7 +479,150 @@
                     </div>
                 </section>
             </section>
-        </main>
+
+            <!-- Painel Relatórios -->
+            <section class="relatorios-panel" id="relatorios-panel" style="display:none;">
+                <header class="content-header">
+                    <h1><i class="fas fa-chart-line"></i> Relatórios & Evolução</h1>
+                </header>
+
+                <section class="form-container" style="margin-bottom:1.5rem;">
+                    <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+                        <div class="input-group" style="flex:0 0 auto;">
+                            <label>Período:</label>
+                            <select id="relatorio-periodo" style="background:var(--bg-input); border:1px solid var(--border-color); padding:0.75rem; border-radius:var(--radius-md); color:var(--text-primary); font-size:0.95rem; outline:none;">
+                                <option value="mensal">Mensal</option>
+                                <option value="anual">Anual</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="flex:0 0 auto;">
+                            <label>Mês:</label>
+                            <select id="relatorio-mes" style="background:var(--bg-input); border:1px solid var(--border-color); padding:0.75rem; border-radius:var(--radius-md); color:var(--text-primary); font-size:0.95rem; outline:none;">
+                                <option value="0">Janeiro</option>
+                                <option value="1">Fevereiro</option>
+                                <option value="2">Março</option>
+                                <option value="3">Abril</option>
+                                <option value="4">Maio</option>
+                                <option value="5">Junho</option>
+                                <option value="6">Julho</option>
+                                <option value="7">Agosto</option>
+                                <option value="8">Setembro</option>
+                                <option value="9">Outubro</option>
+                                <option value="10">Novembro</option>
+                                <option value="11">Dezembro</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="flex:0 0 auto;">
+                            <label>Ano:</label>
+                            <select id="relatorio-ano" style="background:var(--bg-input); border:1px solid var(--border-color); padding:0.75rem; border-radius:var(--radius-md); color:var(--text-primary); font-size:0.95rem; outline:none;"></select>
+                        </div>
+                        <button class="primary-btn" onclick="gerarRelatorio()">
+                            <i class="fas fa-search"></i> Gerar Relatório
+                        </button>
+                    </div>
+                </section>
+
+                <section class="dashboard-stats">
+                    <div class="kpi-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6;">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Empréstimos no Período</h3>
+                                <p id="rel-emprestimos" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Outras Rendas no Período</h3>
+                                <p id="rel-rendas" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:#10b981;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Lucro Total no Período</h3>
+                                <p id="rel-lucro" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Atrasados no Período</h3>
+                                <p id="rel-atrasados" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-stats">
+                    <div class="chart-card" style="margin-bottom:1.5rem;">
+                        <div class="card-header">
+                            <h3>Evolução Mensal de Receitas</h3>
+                            <p>Empréstimos vs Outras Rendas ao longo do tempo</p>
+                        </div>
+                        <div class="chart-container" style="height:320px;">
+                            <canvas id="evolucaoChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-stats">
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Lucro Mensal</h3>
+                                <p>Evolução do lucro por mês</p>
+                            </div>
+                            <div class="chart-container" style="height:260px;">
+                                <canvas id="lucroMensalChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Composição Total</h3>
+                                <p>Participação de cada fonte de receita</p>
+                            </div>
+                            <div class="chart-container" style="height:260px;">
+                                <canvas id="composicaoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="list-container">
+                    <div class="list-header">
+                        <h3>Detalhamento Mensal</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mês/Ano</th>
+                                    <th>Empréstimos</th>
+                                    <th>Outras Rendas</th>
+                                    <th>Receita Total</th>
+                                    <th>Lucro (Juros)</th>
+                                    <th>Atrasados</th>
+                                </tr>
+                            </thead>
+                            <tbody id="relatorio-list"></tbody>
+                        </table>
+                        <div id="relatorio-empty" class="empty-state">
+                            <i class="fas fa-chart-bar"></i>
+                            Selecione um período e clique em "Gerar Relatório".
+                        </div>
+                    </div>
+                </section>
+            </section>
     </div>
 
     <!-- Modal de Parcelas -->

@@ -955,6 +955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function mostrarSecoesPrincipais() {
         document.getElementById('wa-panel').style.display = 'none';
         document.getElementById('rendas-panel').style.display = 'none';
+        document.getElementById('relatorios-panel').style.display = 'none';
         document.querySelector('.form-container').style.display = '';
         document.querySelector('.dashboard-stats').style.display = '';
         document.querySelector('.list-container').style.display = '';
@@ -966,6 +967,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.list-container').style.display = 'none';
         document.getElementById('generate-report-btn').style.display = 'none';
         document.getElementById('rendas-panel').style.display = 'none';
+        document.getElementById('relatorios-panel').style.display = 'none';
         document.getElementById('wa-panel').style.display = '';
     }
 
@@ -998,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.list-container').style.display = 'none';
         document.getElementById('generate-report-btn').style.display = 'none';
         document.getElementById('wa-panel').style.display = 'none';
+        document.getElementById('relatorios-panel').style.display = 'none';
         document.getElementById('rendas-panel').style.display = '';
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-rendas').classList.add('active');
@@ -1256,6 +1259,363 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.filtrarRendas = function() {
         renderRendas();
+    };
+
+    // ============================================
+    // RELATÓRIOS & EVOLUÇÃO
+    // ============================================
+    let evolucaoChart = null;
+    let lucroMensalChart = null;
+    let composicaoChart = null;
+
+    // Popular select de anos
+    const relatorioAno = document.getElementById('relatorio-ano');
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= currentYear - 5; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        relatorioAno.appendChild(opt);
+    }
+    // Mês atual como padrão
+    document.getElementById('relatorio-mes').value = new Date().getMonth();
+    document.getElementById('relatorio-ano').value = currentYear;
+
+    // Mostrar/esconder mês conforme período
+    document.getElementById('relatorio-periodo').addEventListener('change', function() {
+        document.getElementById('relatorio-mes').parentElement.style.display = this.value === 'mensal' ? '' : 'none';
+    });
+
+    window.mostrarRelatorios = function() {
+        document.querySelector('.form-container').style.display = 'none';
+        document.querySelector('.dashboard-stats').style.display = 'none';
+        document.querySelector('.list-container').style.display = 'none';
+        document.getElementById('generate-report-btn').style.display = 'none';
+        document.getElementById('wa-panel').style.display = 'none';
+        document.getElementById('rendas-panel').style.display = 'none';
+        document.getElementById('relatorios-panel').style.display = '';
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-relatorios').classList.add('active');
+        gerarRelatorio();
+    };
+
+    window.gerarRelatorio = async function() {
+        const periodo = document.getElementById('relatorio-periodo').value;
+        const mesSel = parseInt(document.getElementById('relatorio-mes').value);
+        const anoSel = parseInt(document.getElementById('relatorio-ano').value);
+
+        // Buscar pagamentos do banco para dados de empréstimos
+        const loanIds = loans.map(l => l.id);
+        let allPagamentos = [];
+        if (loanIds.length > 0) {
+            const { data: pagData } = await supabase
+                .from('pagamentos')
+                .select('*')
+                .in('loan_id', loanIds)
+                .order('data_vencimento', { ascending: true });
+            allPagamentos = pagData || [];
+        }
+
+        const mesesNomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const mesesCompletos = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+        // Calcular receitas mensais baseado nas datas de empréstimo (loans.data)
+        const receitasMensais = {};
+        const lucrosMensais = {};
+        const atrasadosMensais = {};
+        const today = new Date().toISOString().split('T')[0];
+
+        // Empréstimos por mês de criação/vencimento
+        loans.forEach(loan => {
+            const [ano, mes] = loan.data.split('-').map(Number);
+            const key = `${ano}-${String(mes).padStart(2, '0')}`;
+            if (!receitasMensais[key]) receitasMensais[key] = { emprestimos: 0, rendas: 0, lucro: 0, atrasados: 0 };
+
+            receitasMensais[key].emprestimos += loan.totalAPagar;
+            receitasMensais[key].lucro += (loan.totalAPagar - loan.valor);
+
+            // Verificar se está atrasado
+            let temAtraso = false;
+            if (loan.frequencia !== 'unique' && loan.pagamentos) {
+                temAtraso = loan.pagamentos.some(p => !p.pago && p.dataVencimento < today);
+            } else {
+                temAtraso = !loan.pago && loan.data < today;
+            }
+            if (temAtraso) {
+                receitasMensais[key].atrasados += loan.totalAPagar;
+            }
+        });
+
+        // Outras rendas por mês
+        rendas.forEach(r => {
+            const [ano, mes] = r.data.split('-').map(Number);
+            const key = `${ano}-${String(mes).padStart(2, '0')}`;
+            if (!receitasMensais[key]) receitasMensais[key] = { emprestimos: 0, rendas: 0, lucro: 0, atrasados: 0 };
+            receitasMensais[key].rendas += r.valor;
+        });
+
+        // Gerar labels e dados conforme período
+        let labels = [];
+        let emprestimosData = [];
+        let rendasData = [];
+        let lucroData = [];
+        let atrasadosData = [];
+        let totalEmp = 0, totalRnd = 0, totalLuc = 0, totalAtr = 0;
+
+        if (periodo === 'mensal') {
+            // Filtrar apenas o mês selecionado, mas mostrar todos os meses do ano
+            for (let m = 0; m < 12; m++) {
+                const key = `${anoSel}-${String(m + 1).padStart(2, '0')}`;
+                const dados = receitasMensais[key] || { emprestimos: 0, rendas: 0, lucro: 0, atrasados: 0 };
+                labels.push(mesesNomes[m]);
+                emprestimosData.push(dados.emprestimos);
+                rendasData.push(dados.rendas);
+                lucroData.push(dados.lucro);
+                atrasadosData.push(dados.atrasados);
+
+                if (m === mesSel) {
+                    totalEmp = dados.emprestimos;
+                    totalRnd = dados.rendas;
+                    totalLuc = dados.lucro;
+                    totalAtr = dados.atrasados;
+                }
+            }
+        } else {
+            // Anual: últimos 12 meses
+            const ahora = new Date();
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const dados = receitasMensais[key] || { emprestimos: 0, rendas: 0, lucro: 0, atrasados: 0 };
+                labels.push(`${mesesNomes[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`);
+                emprestimosData.push(dados.emprestimos);
+                rendasData.push(dados.rendas);
+                lucroData.push(dados.lucro);
+                atrasadosData.push(dados.atrasados);
+
+                totalEmp += dados.emprestimos;
+                totalRnd += dados.rendas;
+                totalLuc += dados.lucro;
+                totalAtr += dados.atrasados;
+            }
+        }
+
+        // Atualizar KPIs
+        document.getElementById('rel-emprestimos').textContent = `R$ ${totalEmp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        document.getElementById('rel-rendas').textContent = `R$ ${totalRnd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        document.getElementById('rel-lucro').textContent = `R$ ${totalLuc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        document.getElementById('rel-atrasados').textContent = `R$ ${totalAtr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+
+        // Tabela detalhada
+        const relatorioList = document.getElementById('relatorio-list');
+        const relatorioEmpty = document.getElementById('relatorio-empty');
+        relatorioList.innerHTML = '';
+
+        let hasData = false;
+        labels.forEach((label, i) => {
+            const emp = emprestimosData[i];
+            const rnd = rendasData[i];
+            const luc = lucroData[i];
+            const atr = atrasadosData[i];
+            if (emp > 0 || rnd > 0) {
+                hasData = true;
+                const tr = document.createElement('tr');
+                const total = emp + rnd;
+                tr.innerHTML = `
+                    <td><strong>${periodo === 'mensal' ? mesesCompletos[i] + ' ' + anoSel : label}</strong></td>
+                    <td style="color:#3b82f6;font-weight:600;">R$ ${emp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="color:#f59e0b;font-weight:600;">R$ ${rnd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="font-weight:700;">R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="color:#10b981;font-weight:600;">R$ ${luc.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="color:${atr > 0 ? '#ef4444' : 'var(--text-muted)'};font-weight:600;">R$ ${atr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                `;
+                relatorioList.appendChild(tr);
+            }
+        });
+
+        relatorioEmpty.style.display = hasData ? 'none' : 'block';
+
+        // ---- GRÁFICO EVOLUÇÃO MENSAL ----
+        const ctxEvolucao = document.getElementById('evolucaoChart').getContext('2d');
+        const isDark3 = !document.body.getAttribute('data-theme') || document.body.getAttribute('data-theme') === 'dark';
+        const textColor3 = isDark3 ? '#94a3b8' : '#64748b';
+        const gridColor3 = isDark3 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+        if (evolucaoChart) {
+            evolucaoChart.data.labels = labels;
+            evolucaoChart.data.datasets[0].data = emprestimosData;
+            evolucaoChart.data.datasets[1].data = rendasData;
+            evolucaoChart.data.datasets[2].data = atrasadosData;
+            evolucaoChart.options.scales.x.ticks.color = textColor3;
+            evolucaoChart.options.scales.y.ticks.color = textColor3;
+            evolucaoChart.update();
+        } else {
+            evolucaoChart = new Chart(ctxEvolucao, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Empréstimos',
+                            data: emprestimosData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: isDark3 ? '#111827' : '#ffffff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Outras Rendas',
+                            data: rendasData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: isDark3 ? '#111827' : '#ffffff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Atrasados',
+                            data: atrasadosData,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: isDark3 ? '#111827' : '#ffffff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: textColor3, font: { family: 'Inter', size: 11, weight: 500 }, padding: 16, usePointStyle: true, pointStyleWidth: 10 } },
+                        tooltip: {
+                            backgroundColor: isDark3 ? '#1e293b' : '#ffffff',
+                            titleColor: isDark3 ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark3 ? '#94a3b8' : '#64748b',
+                            borderColor: isDark3 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            padding: 14,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            boxPadding: 4,
+                            callbacks: { label: ctx => `${ctx.dataset.label}: R$ ${ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: textColor3, font: { family: 'Inter', weight: 500 } }, grid: { color: gridColor3 }, border: { display: false } },
+                        y: { ticks: { color: textColor3, callback: v => 'R$ ' + v.toLocaleString('pt-BR'), font: { family: 'Inter' } }, grid: { color: gridColor3 }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ---- GRÁFICO LUCRO MENSAL ----
+        const ctxLucro = document.getElementById('lucroMensalChart').getContext('2d');
+
+        if (lucroMensalChart) {
+            lucroMensalChart.data.labels = labels;
+            lucroMensalChart.data.datasets[0].data = lucroData;
+            lucroMensalChart.update();
+        } else {
+            lucroMensalChart = new Chart(ctxLucro, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Lucro',
+                        data: lucroData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: isDark3 ? '#1e293b' : '#ffffff',
+                            titleColor: isDark3 ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark3 ? '#94a3b8' : '#64748b',
+                            borderColor: isDark3 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: { label: ctx => 'R$ ' + ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: textColor3, font: { family: 'Inter', weight: 500 } }, grid: { display: false }, border: { display: false } },
+                        y: { ticks: { color: textColor3, callback: v => 'R$ ' + v.toLocaleString('pt-BR'), font: { family: 'Inter' } }, grid: { color: gridColor3 }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // ---- GRÁFICO COMPOSIÇÃO ----
+        const ctxComposicao = document.getElementById('composicaoChart').getContext('2d');
+        const totalEmpGeral = emprestimosData.reduce((a, b) => a + b, 0);
+        const totalRndGeral = rendasData.reduce((a, b) => a + b, 0);
+        const totalLucGeral = lucroData.reduce((a, b) => a + b, 0);
+        const totalAtrGeral = atrasadosData.reduce((a, b) => a + b, 0);
+
+        if (composicaoChart) {
+            composicaoChart.data.datasets[0].data = [totalEmpGeral, totalRndGeral, totalLucGeral, totalAtrGeral];
+            composicaoChart.update();
+        } else {
+            composicaoChart = new Chart(ctxComposicao, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Empréstimos', 'Outras Rendas', 'Lucro (Juros)', 'Atrasados'],
+                    datasets: [{
+                        data: [totalEmpGeral, totalRndGeral, totalLucGeral, totalAtrGeral],
+                        backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                        borderColor: isDark3 ? '#111827' : '#ffffff',
+                        borderWidth: 3,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: textColor3, font: { family: 'Inter', size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
+                        tooltip: {
+                            backgroundColor: isDark3 ? '#1e293b' : '#ffffff',
+                            titleColor: isDark3 ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark3 ? '#94a3b8' : '#64748b',
+                            borderColor: isDark3 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: { label: ctx => `${ctx.label}: R$ ${ctx.parsed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` }
+                        }
+                    }
+                }
+            });
+        }
     };
 
     document.getElementById('btn-inicio').addEventListener('click', () => {
