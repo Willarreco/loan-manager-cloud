@@ -677,11 +677,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Verificar atraso considerando parcelas
             let temAtraso = status === 'overdue' && !loan.pago;
+            let valorAtraso = 0;
             if (loan.frequencia !== 'unique' && loan.pagamentos) {
-                temAtraso = loan.pagamentos.some(p => !p.pago && p.dataVencimento < new Date().toISOString().split('T')[0]);
+                const hojeStr = new Date().toISOString().split('T')[0];
+                const pagasAtraso = loan.pagamentos.filter(p => !p.pago && p.dataVencimento < hojeStr);
+                temAtraso = pagasAtraso.length > 0;
+                valorAtraso = pagasAtraso.reduce((acc, p) => acc + p.valor, 0);
+            } else {
+                valorAtraso = temAtraso ? loan.totalAPagar : 0;
             }
             if (temAtraso) {
-                totalAtraso += loan.totalAPagar;
+                totalAtraso += valorAtraso;
             }
 
             // Status do empréstimo (considerando parcelas)
