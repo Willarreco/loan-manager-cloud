@@ -924,6 +924,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Navegação
     function mostrarSecoesPrincipais() {
         document.getElementById('wa-panel').style.display = 'none';
+        document.getElementById('rendas-panel').style.display = 'none';
         document.querySelector('.form-container').style.display = '';
         document.querySelector('.dashboard-stats').style.display = '';
         document.querySelector('.list-container').style.display = '';
@@ -934,8 +935,286 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.dashboard-stats').style.display = 'none';
         document.querySelector('.list-container').style.display = 'none';
         document.getElementById('generate-report-btn').style.display = 'none';
+        document.getElementById('rendas-panel').style.display = 'none';
         document.getElementById('wa-panel').style.display = '';
     }
+
+    // ============================================
+    // OUTRAS RENDAS
+    // ============================================
+    let rendas = [];
+    let editingRendaId = null;
+    let rendasChart = null;
+    let totalChart = null;
+
+    const rendaForm = {
+        nome: document.getElementById('renda-nome'),
+        valor: document.getElementById('renda-valor'),
+        data: document.getElementById('renda-data'),
+        tipo: document.getElementById('renda-tipo'),
+        recorrente: document.getElementById('renda-recorrente'),
+        observacao: document.getElementById('renda-observacao')
+    };
+    const addRendaBtn = document.getElementById('add-renda-btn');
+    const rendaList = document.getElementById('renda-list');
+    const rendasEmptyState = document.getElementById('rendas-empty-state');
+
+    // Definir data de hoje como padrão
+    rendaForm.data.value = new Date().toISOString().split('T')[0];
+
+    window.mostrarRendas = function() {
+        document.querySelector('.form-container').style.display = 'none';
+        document.querySelector('.dashboard-stats').style.display = 'none';
+        document.querySelector('.list-container').style.display = 'none';
+        document.getElementById('generate-report-btn').style.display = 'none';
+        document.getElementById('wa-panel').style.display = 'none';
+        document.getElementById('rendas-panel').style.display = '';
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-rendas').classList.add('active');
+        loadRendas();
+    };
+
+    if (addRendaBtn) addRendaBtn.addEventListener('click', addRenda);
+
+    async function loadRendas() {
+        const { data, error } = await supabase
+            .from('rendas')
+            .select('*')
+            .order('data_renda', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao carregar rendas:', error.message);
+            return;
+        }
+
+        rendas = (data || []).map(r => ({
+            id: r.id,
+            nome: r.nome,
+            valor: parseFloat(r.valor),
+            data: r.data_renda,
+            tipo: r.tipo || 'fixa',
+            recorrente: r.recorrente || false,
+            observacao: r.observacao || ''
+        }));
+
+        renderRendas();
+        updateRendasDashboard();
+    }
+
+    async function addRenda() {
+        const nome = rendaForm.nome.value.trim();
+        const valor = parseFloat(rendaForm.valor.value);
+        const data = rendaForm.data.value;
+        const tipo = rendaForm.tipo.value;
+        const recorrente = rendaForm.recorrente.checked;
+        const observacao = rendaForm.observacao.value.trim();
+
+        if (!nome || isNaN(valor) || valor <= 0 || !data) {
+            alert('Preencha nome, valor e data.');
+            return;
+        }
+
+        const payload = {
+            user_id: user.id,
+            nome,
+            valor,
+            data_renda: data,
+            tipo,
+            recorrente,
+            observacao
+        };
+
+        if (editingRendaId) {
+            const { error } = await supabase.from('rendas').update(payload).eq('id', editingRendaId);
+            if (error) { alert('Erro ao atualizar: ' + error.message); return; }
+            editingRendaId = null;
+            addRendaBtn.textContent = 'Adicionar Renda';
+            addRendaBtn.classList.remove('success-btn');
+            addRendaBtn.classList.add('primary-btn');
+        } else {
+            const { error } = await supabase.from('rendas').insert([payload]);
+            if (error) { alert('Erro ao salvar: ' + error.message); return; }
+        }
+
+        clearRendaForm();
+        loadRendas();
+    }
+
+    window.editarRenda = function(id) {
+        const renda = rendas.find(r => r.id == id);
+        if (!renda) return;
+
+        editingRendaId = id;
+        rendaForm.nome.value = renda.nome;
+        rendaForm.valor.value = renda.valor;
+        rendaForm.data.value = renda.data;
+        rendaForm.tipo.value = renda.tipo;
+        rendaForm.recorrente.checked = renda.recorrente;
+        rendaForm.observacao.value = renda.observacao;
+
+        addRendaBtn.textContent = 'Salvar Alterações';
+        addRendaBtn.classList.remove('primary-btn');
+        addRendaBtn.classList.add('success-btn');
+        rendaForm.nome.focus();
+    };
+
+    window.excluirRenda = async function(id) {
+        if (!confirm('Tem certeza que deseja excluir esta renda?')) return;
+        const { error } = await supabase.from('rendas').delete().eq('id', id);
+        if (error) { alert('Erro ao excluir: ' + error.message); return; }
+        loadRendas();
+    };
+
+    function clearRendaForm() {
+        editingRendaId = null;
+        rendaForm.nome.value = '';
+        rendaForm.valor.value = '';
+        rendaForm.data.value = new Date().toISOString().split('T')[0];
+        rendaForm.tipo.value = 'fixa';
+        rendaForm.recorrente.checked = false;
+        rendaForm.observacao.value = '';
+        addRendaBtn.textContent = 'Adicionar Renda';
+        addRendaBtn.classList.remove('success-btn');
+        addRendaBtn.classList.add('primary-btn');
+    }
+
+    function renderRendas() {
+        rendaList.innerHTML = '';
+        const busca = (document.getElementById('renda-busca')?.value || '').toLowerCase();
+
+        const filtradas = rendas.filter(r =>
+            r.nome.toLowerCase().includes(busca) ||
+            r.tipo.toLowerCase().includes(busca) ||
+            (r.observacao && r.observacao.toLowerCase().includes(busca))
+        );
+
+        if (filtradas.length === 0) {
+            rendasEmptyState.style.display = 'block';
+            return;
+        }
+        rendasEmptyState.style.display = 'none';
+
+        const tipoLabels = { fixa: 'Fixa', variavel: 'Variável', investimento: 'Investimento', freelance: 'Freelance', outro: 'Outro' };
+
+        filtradas.forEach(renda => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${renda.nome}</strong></td>
+                <td style="color:#28a745;font-weight:bold;">R$ ${renda.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td>${formatDate(renda.data)}</td>
+                <td>${tipoLabels[renda.tipo] || renda.tipo}</td>
+                <td>${renda.recorrente ? '<span class="status-badge status-upcoming">Sim</span>' : '<span style="color:var(--text-secondary)">Não</span>'}</td>
+                <td style="color:var(--text-secondary);font-size:0.85rem;">${renda.observacao || '—'}</td>
+                <td>
+                    <button class="edit-btn" onclick="editarRenda(${renda.id})">Editar</button>
+                    <button class="danger-btn" onclick="excluirRenda(${renda.id})">Excluir</button>
+                </td>
+            `;
+            rendaList.appendChild(tr);
+        });
+    }
+
+    function updateRendasDashboard() {
+        const totalRendasEl = document.getElementById('total-rendas');
+        const rendasFixasEl = document.getElementById('rendas-fixas');
+        const rendasRecorrentesEl = document.getElementById('rendas-recorrentes');
+        const rendasFontesEl = document.getElementById('rendas-fontes');
+
+        let totalRendas = 0;
+        let fixas = 0;
+        let recorrentes = 0;
+
+        rendas.forEach(r => {
+            totalRendas += r.valor;
+            if (r.tipo === 'fixa') fixas += r.valor;
+            if (r.recorrente) recorrentes++;
+        });
+
+        const fontes = [...new Set(rendas.map(r => r.tipo))].length;
+
+        totalRendasEl.textContent = `R$ ${totalRendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        rendasFixasEl.textContent = `R$ ${fixas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        rendasRecorrentesEl.textContent = recorrentes;
+        rendasFontesEl.textContent = fontes;
+
+        // Gráfico de rendas por tipo
+        const tipoLabels = { fixa: 'Fixa', variavel: 'Variável', investimento: 'Investimento', freelance: 'Freelance', outro: 'Outro' };
+        const tipoMap = {};
+        rendas.forEach(r => {
+            const label = tipoLabels[r.tipo] || r.tipo;
+            tipoMap[label] = (tipoMap[label] || 0) + r.valor;
+        });
+
+        const ctxRendas = document.getElementById('rendasChart').getContext('2d');
+        const tipoLabelsArr = Object.keys(tipoMap);
+        const tipoValuesArr = Object.values(tipoMap);
+
+        if (rendasChart) {
+            rendasChart.data.labels = tipoLabelsArr;
+            rendasChart.data.datasets[0].data = tipoValuesArr;
+            rendasChart.update();
+        } else if (tipoLabelsArr.length > 0) {
+            rendasChart = new Chart(ctxRendas, {
+                type: 'doughnut',
+                data: {
+                    labels: tipoLabelsArr,
+                    datasets: [{
+                        data: tipoValuesArr,
+                        backgroundColor: ['#ffc107', '#28a745', '#17a2b8', '#6f42c1', '#fd7e14', '#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#1e1e1e'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#b0b0b0', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Gráfico comparativo Empréstimos vs Outras Rendas
+        const totalEmprestado = loans.reduce((acc, l) => acc + l.totalAPagar, 0);
+        const ctxTotal = document.getElementById('totalChart').getContext('2d');
+
+        if (totalChart) {
+            totalChart.data.datasets[0].data = [totalEmprestado, totalRendas];
+            totalChart.update();
+        } else {
+            totalChart = new Chart(ctxTotal, {
+                type: 'bar',
+                data: {
+                    labels: ['Empréstimos', 'Outras Rendas'],
+                    datasets: [{
+                        label: 'R$ Total',
+                        data: [totalEmprestado, totalRendas],
+                        backgroundColor: ['rgba(0,123,255,0.7)', 'rgba(255,193,7,0.7)'],
+                        borderColor: ['#007bff', '#ffc107'],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0b0b0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#b0b0b0', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+    }
+
+    window.filtrarRendas = function() {
+        renderRendas();
+    };
+
     document.getElementById('btn-inicio').addEventListener('click', () => {
         mostrarSecoesPrincipais();
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));

@@ -38,6 +38,10 @@
                     <i class="fab fa-whatsapp"></i>
                     <span>WhatsApp</span>
                 </button>
+                <button class="nav-btn" id="btn-rendas" onclick="mostrarRendas()">
+                    <i class="fas fa-coins"></i>
+                    <span>Rendas</span>
+                </button>
                 <button class="nav-btn" id="btn-config">
                     <i class="fas fa-cog"></i>
                     <span>Ajustes</span>
@@ -330,6 +334,143 @@
                             <tbody id="wa-log-list"></tbody>
                         </table>
                         <div id="wa-log-empty" class="empty-state">Nenhuma notificação enviada ainda.</div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- Painel Outras Rendas -->
+            <section class="rendas-panel" id="rendas-panel" style="display:none;">
+                <header class="content-header">
+                    <h1><i class="fas fa-coins"></i> Outras Rendas</h1>
+                </header>
+
+                <section class="form-container" style="margin-bottom:1.5rem;">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="renda-nome">Nome da Renda:</label>
+                            <input type="text" id="renda-nome" placeholder="Ex: Salário, Aluguel, Freelance...">
+                        </div>
+                        <div class="input-group">
+                            <label for="renda-valor">Valor (R$):</label>
+                            <input type="number" id="renda-valor" placeholder="0,00" min="0" step="0.01">
+                        </div>
+                        <div class="input-group">
+                            <label for="renda-data">Data:</label>
+                            <input type="date" id="renda-data">
+                        </div>
+                        <div class="input-group">
+                            <label for="renda-tipo">Tipo:</label>
+                            <select id="renda-tipo" style="background:var(--input-bg); border:1px solid var(--border-color); padding:0.75rem; border-radius:6px; color:var(--text-primary); font-size:1rem; outline:none;">
+                                <option value="fixa">Fixa (Mensal)</option>
+                                <option value="variavel">Variável</option>
+                                <option value="investimento">Investimento</option>
+                                <option value="freelance">Freelance</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="renda-recorrente">
+                                <span>Recorrente (todo mês)</span>
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <label for="renda-observacao">Observação:</label>
+                            <input type="text" id="renda-observacao" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="add-renda-btn" class="primary-btn">Adicionar Renda</button>
+                    </div>
+                </section>
+
+                <section class="dashboard-stats">
+                    <div class="kpi-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(255,193,7,0.1);color:#ffc107;">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Outras Rendas</h3>
+                                <p id="total-rendas" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(40,167,69,0.1);color:#28a745;">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Fixas (Mensais)</h3>
+                                <p id="rendas-fixas" class="stat-value">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(23,162,184,0.1);color:#17a2b8;">
+                                <i class="fas fa-sync-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Recorrentes</h3>
+                                <p id="rendas-recorrentes" class="stat-value">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:rgba(111,66,193,0.1);color:#6f42c1;">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Fontes de Renda</h3>
+                                <p id="rendas-fontes" class="stat-value">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Outras Rendas por Fonte</h3>
+                                <p>Valor total por tipo de renda</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="rendasChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h3>Visão Geral de Receitas</h3>
+                                <p>Empréstimos vs Outras Rendas</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="totalChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="list-container">
+                    <div class="list-header">
+                        <h3>Rendas Registradas</h3>
+                        <div style="display:flex;gap:0.5rem;">
+                            <input type="text" id="renda-busca" placeholder="Buscar..." style="padding:0.5rem; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.85rem;" oninput="filtrarRendas()">
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="renda-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Valor</th>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Recorrente</th>
+                                    <th>Observação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="renda-list"></tbody>
+                        </table>
+                        <div id="rendas-empty-state" class="empty-state">
+                            Nenhuma outra renda registrada ainda.
+                        </div>
                     </div>
                 </section>
             </section>

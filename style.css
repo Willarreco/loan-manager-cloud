@@ -548,7 +548,7 @@ tr:last-child td {
         border-radius: 0;
         background: transparent !important;
         color: var(--text-secondary);
-        width: 25%;
+        width: 20%;
         text-align: center;
     }
 
