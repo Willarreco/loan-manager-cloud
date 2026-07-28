@@ -734,32 +734,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         const chartColors = ['#3b82f6', '#10b981', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6', '#6366f1'];
         const isDark = !document.body.getAttribute('data-theme') || document.body.getAttribute('data-theme') === 'dark';
         const textColor = isDark ? '#94a3b8' : '#64748b';
-        const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const bgColors = clientLabels.map((_, i) => {
+            const color = chartColors[i % chartColors.length];
+            return color + 'cc';
+        });
 
         if (loanChart) {
             loanChart.data.labels = clientLabels;
             loanChart.data.datasets[0].data = clientProfitValues;
-            loanChart.options.plugins.legend.labels.color = textColor;
+            loanChart.data.datasets[0].backgroundColor = bgColors;
+            loanChart.data.datasets[0].borderColor = clientLabels.map((_, i) => chartColors[i % chartColors.length]);
+            loanChart.options.scales.x.ticks.color = textColor;
+            loanChart.options.scales.y.ticks.color = textColor;
             loanChart.update();
         } else {
             loanChart = new Chart(ctxLoan, {
-                type: 'pie',
+                type: 'bar',
                 data: {
                     labels: clientLabels,
                     datasets: [{
+                        label: 'Lucro (R$)',
                         data: clientProfitValues,
-                        backgroundColor: chartColors,
-                        borderWidth: 3,
-                        borderColor: isDark ? '#111827' : '#ffffff',
-                        hoverOffset: 8
+                        backgroundColor: bgColors,
+                        borderColor: clientLabels.map((_, i) => chartColors[i % chartColors.length]),
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barThickness: clientLabels.length > 6 ? 14 : 22
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right', labels: { color: textColor, font: { size: 11, family: 'Inter' }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
-                        tooltip: { backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#f1f5f9' : '#0f172a', bodyColor: isDark ? '#94a3b8' : '#64748b', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderWidth: 1, padding: 12, cornerRadius: 8, displayColors: true, boxPadding: 4 }
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark ? '#94a3b8' : '#64748b',
+                            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            boxPadding: 4,
+                            callbacks: { label: ctx => `Lucro: R$ ${ctx.parsed.x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: textColor, callback: v => 'R$ ' + v.toLocaleString('pt-BR'), font: { family: 'Inter', size: 10 } },
+                            grid: { color: gridColor },
+                            border: { display: false }
+                        },
+                        y: {
+                            ticks: { color: textColor, font: { family: 'Inter', size: 11, weight: 500 }, padding: 8 },
+                            grid: { display: false },
+                            border: { display: false }
+                        }
                     }
                 }
             });
