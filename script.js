@@ -8,6 +8,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const supabase = window.supabaseClient;
     const user = session.user;
 
+    // Toast Notifications
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icons = { success: '✓', error: '✕', info: 'ℹ' };
+        toast.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+    window.showToast = showToast;
+
     const loanForm = {
         nome: document.getElementById('cliente-nome'),
         telefone: document.getElementById('cliente-telefone'),
@@ -718,9 +731,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         totalAtrasoEl.textContent = `R$ ${totalAtraso.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
         const ctxLoan = document.getElementById('loanChart').getContext('2d');
+        const chartColors = ['#3b82f6', '#10b981', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6', '#6366f1'];
+        const isDark = !document.body.getAttribute('data-theme') || document.body.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
         if (loanChart) {
             loanChart.data.labels = clientLabels;
             loanChart.data.datasets[0].data = clientProfitValues;
+            loanChart.options.plugins.legend.labels.color = textColor;
             loanChart.update();
         } else {
             loanChart = new Chart(ctxLoan, {
@@ -729,16 +748,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     labels: clientLabels,
                     datasets: [{
                         data: clientProfitValues,
-                        backgroundColor: ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6610f2', '#e83e8c', '#fd7e14', '#20c997', '#6f42c1'],
-                        borderWidth: 2,
-                        borderColor: '#1e1e1e'
+                        backgroundColor: chartColors,
+                        borderWidth: 3,
+                        borderColor: isDark ? '#111827' : '#ffffff',
+                        hoverOffset: 8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right', labels: { color: '#b0b0b0', font: { size: 10 } } }
+                        legend: { position: 'right', labels: { color: textColor, font: { size: 11, family: 'Inter' }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
+                        tooltip: { backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#f1f5f9' : '#0f172a', bodyColor: isDark ? '#94a3b8' : '#64748b', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderWidth: 1, padding: 12, cornerRadius: 8, displayColors: true, boxPadding: 4 }
                     }
                 }
             });
@@ -750,6 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (statusChart) {
             statusChart.data.datasets[0].data = statusData;
+            statusChart.options.plugins.legend.labels.color = textColor;
             statusChart.update();
         } else {
             statusChart = new Chart(ctxStatus, {
@@ -758,17 +780,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     labels: statusLabels,
                     datasets: [{
                         data: statusData,
-                        backgroundColor: ['#dc3545', '#ffc107', '#28a745'],
-                        borderWidth: 2,
-                        borderColor: '#1e1e1e'
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+                        borderWidth: 3,
+                        borderColor: isDark ? '#111827' : '#ffffff',
+                        hoverOffset: 8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%',
+                    cutout: '65%',
                     plugins: {
-                        legend: { position: 'right', labels: { color: '#b0b0b0', font: { size: 10 } } }
+                        legend: { position: 'right', labels: { color: textColor, font: { size: 11, family: 'Inter' }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
+                        tooltip: { backgroundColor: isDark ? '#1e293b' : '#ffffff', titleColor: isDark ? '#f1f5f9' : '#0f172a', bodyColor: isDark ? '#94a3b8' : '#64748b', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderWidth: 1, padding: 12, cornerRadius: 8, displayColors: true, boxPadding: 4 }
                     }
                 }
             });
@@ -1154,10 +1178,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ctxRendas = document.getElementById('rendasChart').getContext('2d');
         const tipoLabelsArr = Object.keys(tipoMap);
         const tipoValuesArr = Object.values(tipoMap);
+        const rendasColors = ['#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#f97316', '#ef4444'];
+        const isDark2 = !document.body.getAttribute('data-theme') || document.body.getAttribute('data-theme') === 'dark';
+        const textColor2 = isDark2 ? '#94a3b8' : '#64748b';
 
         if (rendasChart) {
             rendasChart.data.labels = tipoLabelsArr;
             rendasChart.data.datasets[0].data = tipoValuesArr;
+            rendasChart.options.plugins.legend.labels.color = textColor2;
             rendasChart.update();
         } else if (tipoLabelsArr.length > 0) {
             rendasChart = new Chart(ctxRendas, {
@@ -1166,16 +1194,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     labels: tipoLabelsArr,
                     datasets: [{
                         data: tipoValuesArr,
-                        backgroundColor: ['#ffc107', '#28a745', '#17a2b8', '#6f42c1', '#fd7e14', '#dc3545'],
-                        borderWidth: 2,
-                        borderColor: '#1e1e1e'
+                        backgroundColor: rendasColors,
+                        borderWidth: 3,
+                        borderColor: isDark2 ? '#111827' : '#ffffff',
+                        hoverOffset: 8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '65%',
                     plugins: {
-                        legend: { position: 'right', labels: { color: '#b0b0b0', font: { size: 10 } } }
+                        legend: { position: 'right', labels: { color: textColor2, font: { size: 11, family: 'Inter' }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
+                        tooltip: { backgroundColor: isDark2 ? '#1e293b' : '#ffffff', titleColor: isDark2 ? '#f1f5f9' : '#0f172a', bodyColor: isDark2 ? '#94a3b8' : '#64748b', borderColor: isDark2 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderWidth: 1, padding: 12, cornerRadius: 8, displayColors: true, boxPadding: 4 }
                     }
                 }
             });
@@ -1187,6 +1218,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (totalChart) {
             totalChart.data.datasets[0].data = [totalEmprestado, totalRendas];
+            totalChart.options.scales.x.ticks.color = textColor2;
+            totalChart.options.scales.y.ticks.color = textColor2;
+            totalChart.options.scales.x.grid.color = isDark2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            totalChart.options.scales.y.grid.color = isDark2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
             totalChart.update();
         } else {
             totalChart = new Chart(ctxTotal, {
@@ -1196,21 +1231,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     datasets: [{
                         label: 'R$ Total',
                         data: [totalEmprestado, totalRendas],
-                        backgroundColor: ['rgba(0,123,255,0.7)', 'rgba(255,193,7,0.7)'],
-                        borderColor: ['#007bff', '#ffc107'],
+                        backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
+                        borderColor: ['#3b82f6', '#f59e0b'],
                         borderWidth: 2,
-                        borderRadius: 6
+                        borderRadius: 8,
+                        borderSkipped: false
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: { backgroundColor: isDark2 ? '#1e293b' : '#ffffff', titleColor: isDark2 ? '#f1f5f9' : '#0f172a', bodyColor: isDark2 ? '#94a3b8' : '#64748b', borderColor: isDark2 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', borderWidth: 1, padding: 12, cornerRadius: 8, callbacks: { label: ctx => 'R$ ' + ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) } }
                     },
                     scales: {
-                        x: { ticks: { color: '#b0b0b0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                        y: { ticks: { color: '#b0b0b0', callback: v => 'R$ ' + v.toLocaleString('pt-BR') }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                        x: { ticks: { color: textColor2, font: { family: 'Inter', weight: 500 } }, grid: { display: false }, border: { display: false } },
+                        y: { ticks: { color: textColor2, callback: v => 'R$ ' + v.toLocaleString('pt-BR'), font: { family: 'Inter' } }, grid: { color: isDark2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, border: { display: false } }
                     }
                 }
             });
