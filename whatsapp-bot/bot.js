@@ -70,7 +70,7 @@ async function main() {
 
     const { data: loans, error } = await supabase
         .from('loans')
-        .select('id, nome, telefone, total_a_pagar, frequencia, auto_notify, user_id, pagamentos!inner(id, data_vencimento, valor, pago, whatsapp_enviado, tipo)')
+        .select('id, nome, telefone, total_a_pagar, juros, frequencia, auto_notify, user_id, pagamentos!inner(id, data_vencimento, valor, pago, whatsapp_enviado, tipo)')
         .eq('auto_notify', true)
         .eq('pagamentos.data_vencimento', today)
         .eq('pagamentos.pago', false)
@@ -100,7 +100,13 @@ async function main() {
         const pagamentoIds = duePayments.map(p => p.id);
         await supabase.from('pagamentos').update({ whatsapp_enviado: true }).in('id', pagamentoIds);
 
-        const message = 'Bom dia! Tudo bem?\n\n' + nome + ', passando para lembrar que hoje vence o seu compromisso de pagamento.\n\nVoce pode realizar o pagamento do valor total da divida ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros.\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condicoes previamente acertadas.\n\nQualquer duvida, estou a disposicao. Obrigado!';
+        let message = '';
+        if (loan.frequencia === 'parcelado') {
+            message = 'Bom dia! Tudo bem?\n\n' + nome + ', passando para lembrar do vencimento da sua parcela do acordo (R$ ' + duePayments[0].valor.toFixed(2) + ').\n\nQualquer duvida ou para envio do comprovante, estou a disposicao. Obrigado!';
+        } else {
+            const optJuros = (loan.juros && loan.juros > 0) ? ' ou, se preferir e conforme nosso combinado, efetuar apenas o pagamento dos juros' : '';
+            message = 'Bom dia! Tudo bem?\n\n' + nome + ', passando para lembrar que hoje vence o seu compromisso de pagamento.\n\nVoce pode realizar o pagamento do valor total da divida' + optJuros + '.\n\nCaso tenhamos um acordo diferente, desconsidere esta mensagem e siga as condicoes previamente acertadas.\n\nQualquer duvida, estou a disposicao. Obrigado!';
+        }
 
         try {
             await waRequest('POST', '/api/sessions/' + WA_SESSION_ID + '/messages/send-text', {

@@ -290,6 +290,54 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
+/* ============================================
+   FORM TABS (Painel de Controle)
+   ============================================ */
+.form-tabs {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.85rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-family);
+}
+
+.form-tab-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+}
+
+.form-tab-btn.active {
+    background: var(--accent-blue-gradient);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 4px 15px var(--accent-blue-glow);
+}
+
+.form-tab-btn#tab-btn-acordo.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    border-color: transparent;
+}
+
 .input-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -336,6 +384,40 @@ body {
 .input-group input::placeholder,
 .input-group textarea::placeholder {
     color: var(--text-muted);
+}
+
+input[type="date"] {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+[data-theme="light"] input[type="date"] {
+    color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.85);
+    opacity: 0.85;
+    padding: 2px;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: invert(1);
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none;
+    opacity: 0.7;
+}
+
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .input-with-select {
@@ -809,6 +891,59 @@ tr:last-child td {
 .parcelas-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+/* Acordo Button */
+.acordo-btn {
+    background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+    color: white;
+    padding: 0.4rem 0.65rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 0.4rem;
+    transition: var(--transition);
+}
+
+.acordo-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--accent-purple-glow);
+}
+
+/* Acordo Tag & Badges */
+.acordo-badge-wrapper {
+    margin-top: 0.35rem;
+}
+
+.acordo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: var(--transition);
+}
+
+.acordo-tag:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #ede9fe;
+}
+
+[data-theme="light"] .acordo-tag {
+    background: rgba(139, 92, 246, 0.1);
+    color: #6d28d9;
+    border-color: rgba(139, 92, 246, 0.3);
 }
 
 /* ============================================

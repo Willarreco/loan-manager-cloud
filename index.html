@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Empréstimos Premium</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -72,7 +74,26 @@
             </header>
 
             <section class="form-container">
+                <div class="form-tabs">
+                    <button type="button" class="form-tab-btn active" id="tab-btn-normal" onclick="alternarAbaFormulario('normal')">
+                        <i class="fas fa-hand-holding-usd"></i> Empréstimo Normal
+                    </button>
+                    <button type="button" class="form-tab-btn" id="tab-btn-acordo" onclick="alternarAbaFormulario('acordo')">
+                        <i class="fas fa-handshake"></i> Fazer Acordo com Cliente
+                    </button>
+                </div>
+
                 <div class="input-grid">
+                    <div class="input-group" id="acordo-cliente-existente-group" style="grid-column: 1 / -1; display: none;">
+                        <label for="acordo-cliente-select"><i class="fas fa-user-tag" style="color:var(--accent-purple);"></i> Selecionar Cliente com Dívida para Acordo (Opcional):</label>
+                        <select id="acordo-cliente-select" style="background: var(--input-bg); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 0.95rem; outline: none; width: 100%;">
+                            <option value="">-- Cadastrar Novo Acordo / Cliente Avulso --</option>
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem;">
+                            Selecione um cliente para carregar automaticamente o nome, WhatsApp e saldo devedor, ou deixe em branco para um novo acordo.
+                        </small>
+                    </div>
+
                     <div class="input-group">
                         <label for="cliente-nome">Nome do Cliente:</label>
                         <input type="text" id="cliente-nome" placeholder="Digite o nome completo">
@@ -82,40 +103,45 @@
                         <input type="text" id="cliente-telefone" placeholder="(00) 00000-0000">
                     </div>
                     <div class="input-group">
-                        <label for="valor-pego">Valor Pego (R$):</label>
-                        <input type="number" id="valor-pego" placeholder="0,00">
+                        <label for="valor-pego" id="label-valor-pego">Valor Pego (R$):</label>
+                        <input type="text" inputmode="decimal" id="valor-pego" placeholder="0,00">
                     </div>
                     <div class="input-group">
-                        <label for="valor-juros">Juros:</label>
+                        <label for="valor-juros" id="label-juros">Juros <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:normal;">(Opcional)</span>:</label>
                         <div class="input-with-select">
-                            <input type="number" id="valor-juros" placeholder="0">
+                            <input type="text" inputmode="decimal" id="valor-juros" placeholder="0 (opcional)">
                             <select id="tipo-juros">
                                 <option value="percent">%</option>
                                 <option value="fixed">R$</option>
                             </select>
                         </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="valor-cobrado-group">
                         <label for="valor-cobrado">Valor Cobrado (Opcional):</label>
-                        <input type="number" id="valor-cobrado" placeholder="0,00">
+                        <input type="text" inputmode="decimal" id="valor-cobrado" placeholder="0,00">
                     </div>
                     <div class="input-group">
-                        <label for="data-pagamento">Data de Pagamento:</label>
+                        <label for="data-pagamento" id="label-data-pagamento">Data de Pagamento:</label>
                         <input type="date" id="data-pagamento">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="frequencia-group">
                         <label for="frequencia">Frequência de Pagamento:</label>
                         <select id="frequencia" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 1rem; outline: none;">
                             <option value="unique">Pagamento Único</option>
-                            <option value="weekly">Semanal</option>
+                            <option value="parcelado">Parcelado (Todo Mês)</option>
                             <option value="monthly">Mensal</option>
+                            <option value="weekly">Semanal</option>
                             <option value="juros_only">Somente Juros</option>
                         </select>
                     </div>
+                    <div class="input-group" id="parcelas-num-group" style="display:none;">
+                        <label for="numero-parcelas-input">Quantas vezes parcelado (Nº de Parcelas):</label>
+                        <input type="text" inputmode="numeric" id="numero-parcelas-input" placeholder="Ex: 3, 5, 10..." value="3">
+                    </div>
                     <div class="input-group" id="parcelas-group" style="display:none;">
-                        <label for="valor-parcela-input">Valor da Parcela (R$):</label>
-                        <input type="number" id="valor-parcela-input" placeholder="Ex: 200" min="1" step="0.01">
-                        <small id="parcelas-preview" style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.25rem;"></small>
+                        <label for="valor-parcela-input" id="label-valor-parcela">Valor de cada Parcela (R$):</label>
+                        <input type="text" inputmode="decimal" id="valor-parcela-input" placeholder="0,00">
+                        <small id="parcelas-preview" style="color: var(--accent-blue); font-size: 0.85rem; margin-top: 0.35rem; display:block; font-weight:500;"></small>
                     </div>
                     <div class="input-group" id="dia-semana-group" style="display:none;">
                         <label for="dia-semana">Dia da Semana:</label>
@@ -133,15 +159,20 @@
                         <label for="dia-mes">Dia do Mês:</label>
                         <select id="dia-mes" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-size: 1rem; outline: none;"></select>
                     </div>
+                    <div class="input-group" id="observacao-group" style="grid-column: 1 / -1;">
+                        <label for="cliente-observacao" id="label-observacao"><i class="fas fa-sticky-note" style="color: var(--text-secondary);"></i> Observação / Anotação (Opcional):</label>
+                        <textarea id="cliente-observacao" rows="3" placeholder="Anotação opcional sobre o empréstimo" style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; width: 100%; outline: none; resize: vertical;"></textarea>
+                    </div>
                     <div class="input-group" id="auto-notify-group" style="display:none;">
                         <label class="checkbox-label">
                             <input type="checkbox" id="auto-notify" checked>
-                            <span>Notificação Automática via WhatsApp no vencimento</span>
+                            <span>Notificação Automática via WhatsApp no vencimento todo mês</span>
                         </label>
                     </div>
                 </div>
-                <div class="form-actions">
+                <div class="form-actions" style="display: flex; gap: 0.75rem;">
                     <button id="add-client-btn" class="primary-btn">Adicionar Novo Cliente</button>
+                    <button id="cancel-edit-btn" class="danger-btn" style="display: none;" onclick="clearForm()">Cancelar Edição</button>
                 </div>
             </section>
 
@@ -633,6 +664,10 @@
                 <button class="modal-close" onclick="fecharModalParcelas()">&times;</button>
             </div>
             <div class="modal-body" id="modal-parcelas-body">
+                <div id="modal-parcelas-acordo-info" style="display:none; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                    <div style="font-weight: 600; color: #c4b5fd; margin-bottom: 0.25rem;"><i class="fas fa-file-signature"></i> Detalhes do Acordo / Observações:</div>
+                    <div id="modal-acordo-texto-exibicao" style="color: var(--text-primary); white-space: pre-wrap;"></div>
+                </div>
                 <table class="parcelas-table">
                     <thead>
                         <tr>
@@ -650,6 +685,71 @@
             </div>
             <div class="modal-footer">
                 <button class="primary-btn" onclick="fecharModalParcelas()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Acordo com Cliente -->
+    <div id="acordo-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3 id="acordo-modal-title"><i class="fas fa-handshake" style="color:var(--accent-purple);"></i> Fazer Acordo com Cliente</h3>
+                <button class="modal-close" onclick="fecharModalAcordo()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="acordo-loan-id">
+
+                <div id="acordo-client-summary" style="background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+                    <!-- Preenchido dinamicamente via JS -->
+                </div>
+
+                <div class="input-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="input-group">
+                        <label for="acordo-valor-total">Valor Total do Acordo (R$):</label>
+                        <input type="text" inputmode="decimal" id="acordo-valor-total" placeholder="0,00">
+                    </div>
+                    <div class="input-group">
+                        <label for="acordo-juros">Juros (Opcional):</label>
+                        <div class="input-with-select">
+                            <input type="text" inputmode="decimal" id="acordo-juros" placeholder="0" value="0">
+                            <select id="acordo-tipo-juros">
+                                <option value="fixed">R$</option>
+                                <option value="percent">%</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="acordo-num-parcelas">Quantas vezes parcelado:</label>
+                        <input type="text" inputmode="numeric" id="acordo-num-parcelas" placeholder="Ex: 3, 5, 10..." value="3">
+                    </div>
+                    <div class="input-group">
+                        <label for="acordo-valor-parcela">Valor de cada Parcela (R$):</label>
+                        <input type="text" inputmode="decimal" id="acordo-valor-parcela" placeholder="0,00">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label for="acordo-data-primeira">Data do 1º Vencimento:</label>
+                        <input type="date" id="acordo-data-primeira">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <div id="acordo-preview-badge" style="padding: 0.75rem 1rem; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-sm); font-size: 0.9rem; color: #93c5fd; font-weight: 500;">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label for="acordo-texto-obs"><i class="fas fa-sticky-note" style="color:var(--accent-yellow);"></i> Texto Explicativo do Acordo (para você lembrar):</label>
+                        <textarea id="acordo-texto-obs" rows="3" placeholder="Ex: Acordo fechado com o cliente para quitar a dívida anterior em 4x sem juros até todo dia 10." style="background: var(--input-bg); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; width: 100%; outline: none; resize: vertical;"></textarea>
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="acordo-auto-notify" checked>
+                            <span>Lembrar e notificar todo mês via WhatsApp no vencimento</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="gap: 0.75rem;">
+                <button class="danger-btn" onclick="fecharModalAcordo()">Cancelar</button>
+                <button class="success-btn" onclick="confirmarSalvarAcordo()"><i class="fas fa-check"></i> Salvar Acordo</button>
             </div>
         </div>
     </div>

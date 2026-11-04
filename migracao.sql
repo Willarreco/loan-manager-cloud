@@ -11,6 +11,7 @@ ALTER TABLE loans ADD COLUMN IF NOT EXISTS valor_parcela DECIMAL(12,2);
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS dia_vencimento INT;
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS auto_notify BOOLEAN DEFAULT FALSE;
 ALTER TABLE loans ADD COLUMN IF NOT EXISTS pago BOOLEAN DEFAULT FALSE;
+ALTER TABLE loans ADD COLUMN IF NOT EXISTS observacao TEXT;
 
 -- IMPORTANTE: Atualizar empréstimos únicos já pagos manualmente:
 -- UPDATE loans SET pago = true WHERE id = '...' (substitua pelos IDs dos empréstimos já quitados)

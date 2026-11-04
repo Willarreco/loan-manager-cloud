@@ -97,14 +97,24 @@ async function waPararSessao(id) {
 }
 
 async function waExcluirSessao(id) {
+    if (!id) return;
     if (!confirm('Excluir esta sessão permanentemente?')) return;
     try {
         await waApiRequest('DELETE', '/api/sessions/' + id);
+        if (typeof showToast === 'function') {
+            showToast('Sessão excluída com sucesso!', 'success');
+        } else if (typeof window.showToast === 'function') {
+            window.showToast('Sessão excluída com sucesso!', 'success');
+        }
         await waListarSessoes();
     } catch (e) {
         alert('Erro ao excluir: ' + e.message);
     }
 }
+window.waExcluirSessao = waExcluirSessao;
+window.waPararSessao = waPararSessao;
+window.waIniciarSessao = waIniciarSessao;
+window.waExibirQR = waExibirQR;
 
 async function waExibirQR(id) {
     const qrContainer = document.getElementById('wa-qr-container');
